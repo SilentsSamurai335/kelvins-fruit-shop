@@ -1,6 +1,6 @@
 # 1. Build the App
 FROM maven:3.9.6-eclipse-temurin-21 AS build
-COPY . .
+COPY .. .
 RUN mvn clean package -DskipTests
 
 # 2. Run the App
