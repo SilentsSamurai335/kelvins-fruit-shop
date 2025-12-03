@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Inventory - Fruity Fusion</title>
+    <th:block th:replace="~{fragments :: styles}"></th:block>
+</head>
+<body>
+
+<div class="d-flex" id="wrapper">
+    <div th:replace="~{fragments :: sidebar(activePage='inventory')}"></div>
+    <div class="card mb-3 border-0 shadow-sm">
+        <div class="card-body">
+            <input type="text" id="searchInput" onkeyup="filterTable()" class="form-control" placeholder="🔍 Search for juice name (e.g. 'Mango')...">
+        </div>
+    </div>
+
+    <script>
+        function filterTable() {
+            var input, filter, table, tr, td, i, txtValue;
+            input = document.getElementById("searchInput");
+            filter = input.value.toUpperCase();
+            table = document.querySelector(".table");
+            tr = table.getElementsByTagName("tr");
+
+            for (i = 1; i < tr.length; i++) {
+                // Check the Name column (index 1)
+                td = tr[i].getElementsByTagName("td")[1];
+                if (td) {
+                    txtValue = td.textContent || td.innerText;
+                    if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                        tr[i].style.display = "";
+                    } else {
+                        tr[i].style.display = "none";
+                    }
+                }
+            }
+        }
+    </script>
+    <div class="main-content">
+        <div class="container-fluid">
+            <div th:replace="~{fragments :: topbar}"></div>
+
+            <h2 class="fw-bold mb-4">🥤 Inventory & Point of Sale</h2>
+
+            <div class="mb-3">
+                <a href="/add-product" class="btn btn-primary"> + Add New Juice</a>
+            </div>
+
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Size</th> <th>Price (KES)</th>
+                            <th>Stock</th>
+                            <th>Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="product : ${listProducts}">
+                            <td th:text="${product.id}" class="text-muted">1</td>
+                            <td th:text="${product.name}" class="fw-bold">Mango</td>
+
+                            <td>
+                                <span class="badge bg-info text-dark" th:text="${product.size}">Regular</span>
+                            </td>
+
+                            <td th:text="${product.price}">200</td>
+                            ```
+                            <td>
+                                        <span th:text="${product.quantity}"
+                                              th:class="${product.quantity < 5} ? 'badge bg-danger' : 'badge bg-secondary'"
+                                              style="font-size: 0.9em;">
+                                            10
+                                        </span>
+                            </td>
+                            <td>
+                                <a th:if="${product.quantity > 0}" th:href="@{/sell/{id}(id=${product.id})}" class="btn btn-success btn-sm me-1">💰 Sell</a>
+                                <span th:unless="${product.quantity > 0}" class="badge bg-danger me-1 p-2">🚫 Out of Stock</span>
+
+                                <a th:href="@{/edit/{id}(id=${product.id})}" class="btn btn-outline-dark btn-sm me-1">Edit</a>
+                                <a th:href="@{/delete/{id}(id=${product.id})}" class="btn btn-outline-danger btn-sm">Delete</a>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

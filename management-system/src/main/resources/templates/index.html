@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Home - Fruity Fusion</title>
+    <th:block th:replace="~{fragments :: styles}"></th:block>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div class="d-flex" id="wrapper">
+
+    <div th:replace="~{fragments :: sidebar(activePage='home')}"></div>
+
+    <div class="main-content">
+        <div class="container-fluid">
+            <div th:replace="~{fragments :: topbar}"></div>
+            <div class="row mb-4">
+                <div class="col-md-12 text-center">
+                    <img th:src="@{/images/logo-full.png}" alt="Kelvin's Fruity Fusion" style="max-width: 300px; height: auto;">
+                    <p class="text-muted mt-2">Management System Dashboard</p>
+                </div>
+            </div>
+
+            <div class="row justify-content-center">
+                <div class="col-md-8" sec:authorize="hasRole('ADMIN')">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header bg-white border-bottom-0 pt-4">
+                            <h5 class="card-title text-center fw-bold mb-0">📊 Best Selling Juices</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="bestSellersChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-8 text-center" sec:authorize="!hasRole('ADMIN')">
+                    <div class="alert alert-info p-5">
+                        <h4>👋 Hello, Cashier!</h4>
+                        <p>Ready to make some sales?</p>
+                        <a href="/products" class="btn btn-primary btn-lg mt-3">Go to POS System</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-5">
+                <a href="/products" class="btn btn-primary btn-lg px-5">Go to POS / Inventory</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    var labelList = [[${chartLabels}]];
+    var dataList = [[${chartData}]];
+    const ctx = document.getElementById('bestSellersChart');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labelList,
+            datasets: [{
+                label: '# of Sales',
+                data: dataList,
+                backgroundColor: '#FFC107', // Use our theme yellow
+                borderColor: '#e0a800',
+                borderWidth: 1
+            }]
+        },
+        options: { scales: { y: { beginAtZero: true } } }
+    });
+</script>
+
+</body>
+</html>

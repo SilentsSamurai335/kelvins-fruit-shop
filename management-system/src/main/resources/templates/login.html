@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Login - Fruity Fusion</title>
+    <th:block th:replace="~{fragments :: styles}"></th:block>
+    <style>
+        body {
+            /* Center the login card */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        .login-card {
+            width: 100%;
+            max-width: 400px;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            background: var(--card-bg); /* Use variable for Dark Mode */
+            border-top: 5px solid var(--ff-yellow);
+        }
+        .login-logo {
+            max-width: 180px;
+            height: auto;
+            margin-bottom: 1.5rem;
+        }
+        /* Fix button text color */
+        .btn-primary {
+            background-color: var(--ff-yellow);
+            border-color: var(--ff-yellow);
+            color: black;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="login-card text-center">
+    <img th:src="@{/images/logo-full.png}" alt="Kelvin's Fruity Fusion" class="login-logo">
+
+    <h4 class="fw-bold mb-3">Welcome Back!</h4>
+    <p class="text-muted mb-4">Please sign in to manage your shop.</p>
+
+    <form th:action="@{/login}" method="post">
+        <div th:if="${param.error}" class="alert alert-danger bg-danger text-white border-0 fs-6 px-3 py-2">
+            Invalid username or password.
+        </div>
+        <div th:if="${param.logout}" class="alert alert-success bg-success text-white border-0 fs-6 px-3 py-2">
+            You have been successfully logged out.
+        </div>
+
+        <div class="form-floating mb-3 text-start">
+            <input type="text" name="username" class="form-control" id="usernameInput" placeholder="admin" required>
+            <label for="usernameInput" class="text-secondary">Username</label>
+        </div>
+
+        <div class="form-floating mb-4 text-start">
+            <input type="password" name="password" class="form-control" id="passwordInput" placeholder="******" required>
+            <label for="passwordInput" class="text-secondary">Password</label>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 btn-lg fs-6">Sign In</button>
+    </form>
+
+    <p class="text-muted mt-4 mb-0" style="font-size: 0.9em;">&copy; 2025 Kelvin's Fruity Fusion</p>
+</div>
+
+</body>
+</html>
