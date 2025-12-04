@@ -14,24 +14,34 @@
             <div th:replace="~{fragments :: topbar}"></div>
             <h2 class="fw-bold mb-4">💰 Sales History</h2>
 
-            <div class="d-flex justify-content-center mb-4 gap-2">
-                <a href="/sales?period=today"
-                   class="btn"
-                   th:classappend="${activePeriod == 'today'} ? 'btn-primary' : 'btn-outline-primary'">
-                    📅 Today
-                </a>
+            <div class="card mb-3 border-0 shadow-sm">
+                <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2">
 
-                <a href="/sales?period=month"
-                   class="btn"
-                   th:classappend="${activePeriod == 'month'} ? 'btn-primary' : 'btn-outline-primary'">
-                    🗓️ This Month
-                </a>
+                    <div class="btn-group">
+                        <a href="/sales?period=today" class="btn btn-outline-primary">📅 Today</a>
+                        <a href="/sales?period=month" class="btn btn-outline-primary">🗓️ Current Month</a>
+                        <a href="/sales?period=all" class="btn btn-outline-secondary">♾️ All Time</a>
+                    </div>
 
-                <a href="/sales?period=all"
-                   class="btn"
-                   th:classappend="${activePeriod == 'all'} ? 'btn-primary' : 'btn-outline-primary'">
-                    ♾️ All Time
-                </a>
+                    <form action="/sales" method="get" class="d-flex align-items-center gap-2">
+                        <select name="month" class="form-select" style="width: auto;">
+                            <option value="1" th:selected="${selectedMonth == 1}">January</option>
+                            <option value="2" th:selected="${selectedMonth == 2}">February</option>
+                            <option value="3" th:selected="${selectedMonth == 3}">March</option>
+                            <option value="4" th:selected="${selectedMonth == 4}">April</option>
+                            <option value="5" th:selected="${selectedMonth == 5}">May</option>
+                            <option value="6" th:selected="${selectedMonth == 6}">June</option>
+                            <option value="7" th:selected="${selectedMonth == 7}">July</option>
+                            <option value="8" th:selected="${selectedMonth == 8}">August</option>
+                            <option value="9" th:selected="${selectedMonth == 9}">September</option>
+                            <option value="10" th:selected="${selectedMonth == 10}">October</option>
+                            <option value="11" th:selected="${selectedMonth == 11}">November</option>
+                            <option value="12" th:selected="${selectedMonth == 12}">December</option>
+                        </select>
+                        <input type="number" name="year" class="form-control" style="width: 80px;" th:value="${selectedYear}">
+                        <button type="submit" class="btn btn-dark">Go</button>
+                    </form>
+                </div>
             </div>
 
             <div class="row mb-4">

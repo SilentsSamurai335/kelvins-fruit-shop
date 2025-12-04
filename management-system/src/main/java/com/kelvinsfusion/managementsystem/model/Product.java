@@ -7,72 +7,43 @@ import jakarta.persistence.Id;
 
 @Entity
 public class Product {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
     private String name;
     private String description;
-    private double price;
-    private String size; // NEW: e.g., "Small", "500ml", "Large"
 
-    public Product() {
-    }
+    // --- 250ML Data ---
+    private double priceSmall;
+    private int stockSmall;
 
-    public Product(String name, String description, double price) {
-        this.name = name;
-        this.description = description;
-        this.price = price;
-    }
+    // --- 500ML Data ---
+    private double priceLarge;
+    private int stockLarge;
 
-    // Initialize with 0 so we don't get errors
-    private int quantity = 0;
+    public Product() {}
 
-    // --- GETTERS (The Bridge to HTML) ---
-    public Long getId() {
-        return id;
-    }
+    // --- Getters and Setters ---
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
 
-    public String getName() {
-        return name;
-    } // HTML calls this!
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
 
-    public void setName(String name) {
-        this.name = name;
-    }
+    public double getPriceSmall() { return priceSmall; }
+    public void setPriceSmall(double priceSmall) { this.priceSmall = priceSmall; }
 
-    public String getDescription() {
-        return description;
-    }
+    public int getStockSmall() { return stockSmall; }
+    public void setStockSmall(int stockSmall) { this.stockSmall = stockSmall; }
 
-    public void setDescription(String description) {
-        this.description = description;
-    }
+    public double getPriceLarge() { return priceLarge; }
+    public void setPriceLarge(double priceLarge) { this.priceLarge = priceLarge; }
 
-    public double getPrice() {
-        return price;
-    }
-
-    public void setPrice(double price) {
-        this.price = price;
-    }
-
-    public int getQuantity() {
-        return quantity;
-    }
-
-    public void setQuantity(int quantity) {
-        this.quantity = quantity;
-    }
-
-    public String getSize() {
-        return size;
-    }
-
-    public void setSize(String size) {
-        this.size = size;
-    }
+    public int getStockLarge() { return stockLarge; }
+    public void setStockLarge(int stockLarge) { this.stockLarge = stockLarge; }
 }

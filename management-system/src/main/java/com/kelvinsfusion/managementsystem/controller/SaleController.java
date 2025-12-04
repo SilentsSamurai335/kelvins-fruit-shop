@@ -26,32 +26,41 @@ public class SaleController {
 
     // 1. Show the Sales History Page
     @GetMapping("/sales")
-    public String showSales(@RequestParam(value = "period", defaultValue = "all") String period, Model model) {
+    public String showSales(@RequestParam(value = "period", required = false) String period,
+                            @RequestParam(value = "month", required = false) Integer month,
+                            @RequestParam(value = "year", required = false) Integer year,
+                            Model model) {
 
         List<Sale> sales;
-
-        // Date Math Logic
         LocalDateTime now = LocalDateTime.now();
+        String title = "All Time Sales";
 
-        if (period.equals("today")) {
-            // From 00:00 today to right now
-            LocalDateTime startOfDay = now.toLocalDate().atStartOfDay();
-            sales = saleRepository.findBySaleDateTimeBetween(startOfDay, now);
-            model.addAttribute("periodTitle", "Today's Sales");
+        // Logic to determine date range
+        if (month != null && year != null) {
+            // Case 1: Specific Month Selected (e.g., November 2025)
+            LocalDateTime start = LocalDateTime.of(year, month, 1, 0, 0);
+            LocalDateTime end = start.plusMonths(1).minusSeconds(1);
+            sales = saleRepository.findBySaleDateTimeBetween(start, end);
+            title = java.time.Month.of(month).name() + " " + year + " Sales";
 
-        } else if (period.equals("month")) {
-            // From Day 1 of this month to right now
-            LocalDateTime startOfMonth = now.toLocalDate().withDayOfMonth(1).atStartOfDay();
-            sales = saleRepository.findBySaleDateTimeBetween(startOfMonth, now);
-            model.addAttribute("periodTitle", "This Month's Sales");
+        } else if ("today".equals(period)) {
+            // Case 2: Today
+            LocalDateTime start = now.toLocalDate().atStartOfDay();
+            sales = saleRepository.findBySaleDateTimeBetween(start, now);
+            title = "Today's Sales";
+
+        } else if ("month".equals(period)) {
+            // Case 3: Current Month
+            LocalDateTime start = now.toLocalDate().withDayOfMonth(1).atStartOfDay();
+            sales = saleRepository.findBySaleDateTimeBetween(start, now);
+            title = "This Month's Sales";
 
         } else {
-            // Default: Show everything
+            // Case 4: All Time
             sales = saleRepository.findAll();
-            model.addAttribute("periodTitle", "All Time Sales");
         }
 
-        // Calculate Revenue for the filtered list ONLY
+        // Calculate Revenue
         double totalRevenue = 0.0;
         for (Sale sale : sales) {
             totalRevenue += sale.getTotalAmount();
@@ -59,31 +68,15 @@ public class SaleController {
 
         model.addAttribute("listSales", sales);
         model.addAttribute("totalRevenue", totalRevenue);
-        model.addAttribute("activePeriod", period); // To highlight the button
+        model.addAttribute("periodTitle", title);
+
+        // Pass current month/year to keep the dropdown selected
+        model.addAttribute("selectedMonth", (month != null) ? month : now.getMonthValue());
+        model.addAttribute("selectedYear", (year != null) ? year : now.getYear());
 
         return "sales";
     }
 
-    // 2. The Logic to SELL a specific product
-    @GetMapping("/sell/{id}")
-    public String sellProduct(@PathVariable("id") Long id) {
-        Product product = productRepository.findById(id).orElse(null);
 
-        if (product != null) {
-            // CHECK: Do we have stock?
-            if (product.getQuantity() > 0) {
 
-                // 1. Create Sale Record
-                Sale newSale = new Sale();
-                newSale.setItemsSold(product.getName());
-                newSale.setTotalAmount(product.getPrice());
-                saleRepository.save(newSale);
-
-                // 2. DEDUCT STOCK
-                product.setQuantity(product.getQuantity() - 1);
-                productRepository.save(product); // Update the product in DB
-            }
-        }
-        return "redirect:/sales";
-    }
 }

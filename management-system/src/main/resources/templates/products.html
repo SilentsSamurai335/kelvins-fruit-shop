@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.w3.org/1999/xhtml">
 <head>
     <title>Inventory - Fruity Fusion</title>
     <th:block th:replace="~{fragments :: styles}"></th:block>
@@ -51,37 +51,55 @@
                     <table class="table table-hover mb-0 align-middle">
                         <thead class="table-light">
                         <tr>
-                            <th>ID</th>
                             <th>Name</th>
-                            <th>Size</th> <th>Price (KES)</th>
-                            <th>Stock</th>
-                            <th>Actions</th>
+                            <th>Description</th>
+                            <th>Prices (Sm / Lg)</th> <th>Stock (Sm / Lg)</th>  <th>Sell / Actions</th>
                         </tr>
                         </thead>
                         <tbody>
                         <tr th:each="product : ${listProducts}">
-                            <td th:text="${product.id}" class="text-muted">1</td>
                             <td th:text="${product.name}" class="fw-bold">Mango</td>
+                            <td th:text="${product.description}" class="text-muted small">Desc</td>
 
                             <td>
-                                <span class="badge bg-info text-dark" th:text="${product.size}">Regular</span>
+                                <div class="small">
+                                    🥤 250ml: <span class="fw-bold" th:text="${product.priceSmall}">100</span>
+                                </div>
+                                <div class="small">
+                                    🥤 500ml: <span class="fw-bold" th:text="${product.priceLarge}">200</span>
+                                </div>
                             </td>
 
-                            <td th:text="${product.price}">200</td>
-                            ```
                             <td>
-                                        <span th:text="${product.quantity}"
-                                              th:class="${product.quantity < 5} ? 'badge bg-danger' : 'badge bg-secondary'"
-                                              style="font-size: 0.9em;">
-                                            10
-                                        </span>
+                                <div class="small mb-1">
+                                    <span class="text-muted">250ml: </span>
+                                    <span th:text="${product.stockSmall}"
+                                          th:class="${product.stockSmall < 5} ? 'badge bg-danger' : 'badge bg-secondary'">
+                    </span>
+                                </div>
+                                <div class="small">
+                                    <span class="text-muted">500ml: </span>
+                                    <span th:text="${product.stockLarge}"
+                                          th:class="${product.stockLarge < 5} ? 'badge bg-danger' : 'badge bg-secondary'">
+                    </span>
+                                </div>
                             </td>
-                            <td>
-                                <a th:if="${product.quantity > 0}" th:href="@{/sell/{id}(id=${product.id})}" class="btn btn-success btn-sm me-1">💰 Sell</a>
-                                <span th:unless="${product.quantity > 0}" class="badge bg-danger me-1 p-2">🚫 Out of Stock</span>
 
-                                <a th:href="@{/edit/{id}(id=${product.id})}" class="btn btn-outline-dark btn-sm me-1">Edit</a>
-                                <a th:href="@{/delete/{id}(id=${product.id})}" class="btn btn-outline-danger btn-sm">Delete</a>
+                            <td>
+                                <form th:action="@{/sell/{id}(id=${product.id})}" method="get" class="d-flex align-items-center gap-2">
+
+                                    <select name="size" class="form-select form-select-sm" style="width: 100px;">
+                                        <option value="250ml">250ml</option>
+                                        <option value="500ml">500ml</option>
+                                    </select>
+
+                                    <button type="submit" class="btn btn-success btn-sm fw-bold">Sell</button>
+
+                                </form>
+
+                                <div class="mt-2" sec:authorize="hasRole('ADMIN')">
+                                    <a th:href="@{/delete/{id}(id=${product.id})}" class="text-danger small text-decoration-none">Delete Product</a>
+                                </div>
                             </td>
                         </tr>
                         </tbody>

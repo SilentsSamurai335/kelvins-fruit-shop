@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Expenses - Fruity Fusion</title>
+    <th:block th:replace="~{fragments :: styles}"></th:block>
+</head>
+<body>
+<div class="d-flex" id="wrapper">
+    <div th:replace="~{fragments :: sidebar(activePage='expenses')}"></div>
+
+    <div class="main-content">
+        <div class="container-fluid">
+            <div th:replace="~{fragments :: topbar}"></div>
+
+            <h2 class="fw-bold mb-4">📉 Purchases & Expenses</h2>
+
+            <div class="card mb-4 border-0 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title text-muted mb-3">Record Purchase (Sugar, Milk, Cups)</h5>
+
+                    <form th:action="@{/save-expense}" th:object="${newExpense}" method="post" class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label>Item Name</label>
+                            <input type="text" th:field="*{itemName}" class="form-control" placeholder="e.g. Sugar" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label>Quantity</label>
+                            <input type="text" th:field="*{quantity}" class="form-control" placeholder="e.g. 5 kgs" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label>Total Cost (KES)</label>
+                            <input type="number" step="0.01" th:field="*{amount}" class="form-control" placeholder="0.00" required>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-danger w-100 fw-bold">Save</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>Item</th>
+                            <th>Quantity</th> <th>Cost</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="expense : ${listExpenses}">
+                            <td th:text="${expense.date}"></td>
+                            <td th:text="${expense.itemName}"></td>
+                            <td th:text="${expense.quantity}"></td> <td th:text="${expense.amount}" class="text-danger fw-bold"></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -22,13 +22,27 @@
             </div>
 
             <div class="row justify-content-center">
-                <div class="col-md-8" sec:authorize="hasRole('ADMIN')">
-                    <div class="card shadow-sm border-0">
-                        <div class="card-header bg-white border-bottom-0 pt-4">
-                            <h5 class="card-title text-center fw-bold mb-0">📊 Best Selling Juices</h5>
+                <div class="row" sec:authorize="hasRole('ADMIN')">
+
+                    <div class="col-md-8 mb-4">
+                        <div class="card shadow-sm border-0 h-100">
+                            <div class="card-header bg-white">
+                                <h5 class="fw-bold text-success mb-0">📈 Daily Revenue Trend</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="trendChart"></canvas>
+                            </div>
                         </div>
-                        <div class="card-body">
-                            <canvas id="bestSellersChart"></canvas>
+                    </div>
+
+                    <div class="col-md-4 mb-4">
+                        <div class="card shadow-sm border-0 h-100">
+                            <div class="card-header bg-white">
+                                <h5 class="fw-bold text-warning mb-0">🍕 Product Mix</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="productChart"></canvas>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -50,22 +64,48 @@
 </div>
 
 <script th:inline="javascript">
-    var labelList = [[${chartLabels}]];
-    var dataList = [[${chartData}]];
-    const ctx = document.getElementById('bestSellersChart');
-    new Chart(ctx, {
-        type: 'bar',
+    // --- CHART 1: LINE GRAPH (Revenue) ---
+    var trendLabels = [[${trendDates}]];
+    var trendData = [[${trendAmounts}]];
+
+    new Chart(document.getElementById('trendChart'), {
+        type: 'line', // KELVIN WANTED A LINE GRAPH
         data: {
-            labels: labelList,
+            labels: trendLabels,
             datasets: [{
-                label: '# of Sales',
-                data: dataList,
-                backgroundColor: '#FFC107', // Use our theme yellow
-                borderColor: '#e0a800',
-                borderWidth: 1
+                label: 'Daily Revenue (KES)',
+                data: trendData,
+                borderColor: '#198754', // Green Line
+                backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3 // Makes the line curved and smooth
             }]
         },
         options: { scales: { y: { beginAtZero: true } } }
+    });
+
+    // --- CHART 2: DOUGHNUT (Products with Different Colors) ---
+    var productLabels = [[${productLabels}]];
+    var productData = [[${productData}]];
+
+    new Chart(document.getElementById('productChart'), {
+        type: 'doughnut', // Best for comparing products
+        data: {
+            labels: productLabels,
+            datasets: [{
+                data: productData,
+                backgroundColor: [
+                    '#FFC107', // Yellow
+                    '#DC3545', // Red
+                    '#0D6EFD', // Blue
+                    '#198754', // Green
+                    '#6610F2', // Purple
+                    '#FD7E14'  // Orange
+                ],
+                borderWidth: 0
+            }]
+        }
     });
 </script>
 
