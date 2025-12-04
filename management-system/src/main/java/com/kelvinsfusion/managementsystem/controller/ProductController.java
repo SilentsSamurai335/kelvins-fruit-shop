@@ -78,29 +78,39 @@ public class ProductController {
     // --- REPLACE THE OLD "SELL" METHOD WITH THIS NEW ONE ---
     @GetMapping("/sell/{id}")
     public String sellProduct(@PathVariable("id") Long id,
-                              @RequestParam("size") String size) { // <--- New: Reads the dropdown (250ml/500ml)
+                              @RequestParam(value = "size", required = false) String size) {
 
         Product product = productRepository.findById(id).orElse(null);
 
         if (product != null) {
             Sale newSale = new Sale();
-            newSale.setItemsSold(product.getName() + " (" + size + ")");
-            newSale.setSaleDateTime(java.time.LocalDateTime.now()); // Ensure time is set
+            newSale.setSaleDateTime(java.time.LocalDateTime.now());
 
-            // Logic: Check which size was chosen -> Deduct correct stock -> Set correct price
-            if (size.equals("250ml")) {
-                if (product.getStockSmall() > 0) {
+            // --- CASE 1: JUICES (Unlimited Stock) ---
+            if ("Beverage".equals(product.getCategory())) {
+                newSale.setItemsSold(product.getName() + " (" + size + ")");
+
+                if ("250ml".equals(size)) {
                     newSale.setTotalAmount(product.getPriceSmall());
-                    product.setStockSmall(product.getStockSmall() - 1);
-                    saleRepository.save(newSale);
-                    productRepository.save(product);
-                }
-            } else if (size.equals("500ml")) {
-                if (product.getStockLarge() > 0) {
+                } else {
                     newSale.setTotalAmount(product.getPriceLarge());
-                    product.setStockLarge(product.getStockLarge() - 1);
-                    saleRepository.save(newSale);
+                }
+                // No stock deduction for juices!
+                saleRepository.save(newSale);
+            }
+
+            // --- CASE 2: SNACKS & SPICES (Track Stock) ---
+            else {
+                // We use 'stockSmall' and 'priceSmall' to store the single stock/price
+                if (product.getStockSmall() > 0) {
+                    newSale.setItemsSold(product.getName()); // No size needed
+                    newSale.setTotalAmount(product.getPriceSmall());
+
+                    // Deduct 1 unit
+                    product.setStockSmall(product.getStockSmall() - 1);
+
                     productRepository.save(product);
+                    saleRepository.save(newSale);
                 }
             }
         }
@@ -120,10 +130,74 @@ public class ProductController {
     }
     // 1. Show the Expenses Page
     @GetMapping("/expenses")
-    public String showExpenses(Model model) {
-        model.addAttribute("listExpenses", expenseRepository.findAll());
+    public String showExpenses(
+            @RequestParam(value = "period", required = false) String period,
+            @RequestParam(value = "month", required = false) Integer month,
+            @RequestParam(value = "year", required = false) Integer year,
+            @RequestParam(value = "category", required = false) String category,
+            Model model) {
+
+        // --- 1. DATE FILTER LOGIC ---
+        java.time.LocalDate now = java.time.LocalDate.now();
+        java.time.LocalDate start = now.minusYears(100); // Default: All time
+        java.time.LocalDate end = now;
+        String periodTitle = "All Time";
+
+        if (month != null && year != null) {
+            start = java.time.LocalDate.of(year, month, 1);
+            end = start.plusMonths(1).minusDays(1);
+            periodTitle = java.time.Month.of(month).name() + " " + year;
+        } else if ("today".equals(period)) {
+            start = now;
+            end = now;
+            periodTitle = "Today";
+        } else if ("month".equals(period)) {
+            start = now.withDayOfMonth(1);
+            end = now.withDayOfMonth(now.lengthOfMonth());
+            periodTitle = "This Month";
+        }
+
+        List<com.kelvinsfusion.managementsystem.model.Expense> expenses = expenseRepository.findByDateBetween(start, end);
+
+        // --- 2. CATEGORY FILTER LOGIC ---
+        if (category != null && !category.isEmpty() && !category.equals("ALL")) {
+
+            // Define Groups
+            java.util.List<String> utilityGroup = java.util.Arrays.asList("Rent", "Gas", "Tap Water", "Garbage", "Token");
+            java.util.List<String> ingredientGroup = java.util.Arrays.asList("Juice Ingredients", "Uji Ingredients", "Snacks", "Spices", "Packaging", "Kitchen Utilities");
+            java.util.List<String> opsGroup = java.util.Arrays.asList("Transport", "Lunch", "Maintenance", "Honorarium");
+
+            if (category.equals("GROUP_UTILITIES")) {
+                expenses = expenses.stream().filter(e -> utilityGroup.contains(e.getCategory())).toList();
+                periodTitle += " (Utilities)";
+            } else if (category.equals("GROUP_INGREDIENTS")) {
+                expenses = expenses.stream().filter(e -> ingredientGroup.contains(e.getCategory())).toList();
+                periodTitle += " (Ingredients)";
+            } else if (category.equals("GROUP_OPERATIONS")) {
+                expenses = expenses.stream().filter(e -> opsGroup.contains(e.getCategory())).toList();
+                periodTitle += " (Operations)";
+            } else {
+                // Exact Match (e.g., just "Rent")
+                String finalCategory = category;
+                expenses = expenses.stream().filter(e -> e.getCategory().equals(finalCategory)).toList();
+                periodTitle += " (" + category + ")";
+            }
+        }
+
+        // Calculate Total for the filtered view
+        double totalExpense = expenses.stream().mapToDouble(com.kelvinsfusion.managementsystem.model.Expense::getAmount).sum();
+
+        model.addAttribute("listExpenses", expenses);
         model.addAttribute("newExpense", new com.kelvinsfusion.managementsystem.model.Expense());
-        return "expenses"; // This is the HTML file we will make next
+        model.addAttribute("totalExpense", totalExpense);
+        model.addAttribute("periodTitle", periodTitle);
+        model.addAttribute("selectedCategory", category);
+
+        // For the Dropdowns
+        model.addAttribute("selectedMonth", (month != null) ? month : now.getMonthValue());
+        model.addAttribute("selectedYear", (year != null) ? year : now.getYear());
+
+        return "expenses";
     }
 
     // 2. Save a new Expense

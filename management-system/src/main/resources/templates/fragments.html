@@ -173,6 +173,31 @@
             .btn-calc.operator { background-color: #f0f0f0; color: black; }
             .btn-calc.equal { background-color: var(--ff-yellow); grid-column: span 2; }
             .btn-calc.clear { background-color: #ff6b6b; color: white; grid-column: span 2; }
+            /* --- HOVER FIXES FOR DARK MODE --- */
+
+            /* 1. Fix Table Row Hover (Make it dark grey, not white) */
+            [data-theme="dark"] .table-hover tbody tr:hover {
+                background-color: #343a40 !important; /* Lighter Grey */
+                color: #ffffff !important;            /* Keep text White */
+            }
+
+            /* 2. Fix Outline Buttons on Hover (Force Black text on fill) */
+            [data-theme="dark"] .btn-outline-light:hover,
+            [data-theme="dark"] .btn-outline-dark:hover,
+            [data-theme="dark"] .btn-outline-primary:hover {
+                color: #000000 !important; /* Turn text black when button fills with color */
+            }
+
+            /* 3. Fix Standard Links (Make them Yellow/Bright on hover) */
+            [data-theme="dark"] a:hover {
+                color: var(--ff-yellow) !important;
+            }
+
+            /* 4. Fix Dropdown/Select Menu Items */
+            [data-theme="dark"] select option {
+                background-color: #2c3034;
+                color: white;
+            }
         </style>
 
         <script>
@@ -238,6 +263,7 @@
                 updateClock();
                 setInterval(updateClock, 1000);
             });
+
         </script>
     </th:block>
 </head>

@@ -18,52 +18,97 @@
                 <div class="card-body p-4">
 
                     <form th:action="@{/save-product}" th:object="${product}" method="post">
-
                         <input type="hidden" th:field="*{id}" />
 
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Juice Name</label>
-                            <input type="text" th:field="*{name}" class="form-control form-control-lg" placeholder="e.g. Mango Surprise" required>
+                            <label class="fw-bold">Category</label>
+                            <select th:field="*{category}" id="prodCategory" class="form-select" onchange="toggleProductFields()" required>
+                                <option value="Beverage">Beverages (Juice, Porridge, Coffee)</option>
+                                <option value="Snack">Snack (Sold by Piece)</option>
+                                <option value="Spice">Spice (Sold by Qty)</option>
+                            </select>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Description</label>
-                            <input type="text" th:field="*{description}" class="form-control" placeholder="Ingredients...">
+                            <label class="fw-bold">Name</label>
+                            <input type="text" th:field="*{name}" class="form-control" placeholder="e.g. Mango or Samosa" required>
                         </div>
 
-                        <hr class="my-4">
+                        <div class="mb-3">
+                            <label>Description</label>
+                            <input type="text" th:field="*{description}" class="form-control">
+                        </div>
 
-                        <div class="row g-4">
-                            <div class="col-md-6 border-end">
-                                <h5 class="text-success fw-bold mb-3">🥤 250ML (Small)</h5>
-                                <div class="mb-3">
-                                    <label class="form-label">Price (KES)</label>
-                                    <input type="number" step="0.01" th:field="*{priceSmall}" class="form-control" required>
+                        <hr>
+
+                        <div id="juiceFields">
+                            <h5 class="text-success">🥤 Juice Pricing</h5>
+                            <div class="row">
+                                <div class="col-6">
+                                    <label>250ml Price</label>
+                                    <input type="number" step="0.01" th:field="*{priceSmall}" class="form-control" placeholder="0.00">
                                 </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Stock Count</label>
-                                    <input type="number" th:field="*{stockSmall}" class="form-control" required>
+                                <div class="col-6">
+                                    <label>500ml Price</label>
+                                    <input type="number" step="0.01" th:field="*{priceLarge}" class="form-control" placeholder="0.00">
                                 </div>
                             </div>
+                            <input type="hidden" name="stockSmall" value="999">
+                            <input type="hidden" name="stockLarge" value="999">
+                        </div>
 
-                            <div class="col-md-6">
-                                <h5 class="text-success fw-bold mb-3">🥤 500ML (Large)</h5>
-                                <div class="mb-3">
-                                    <label class="form-label">Price (KES)</label>
-                                    <input type="number" step="0.01" th:field="*{priceLarge}" class="form-control" required>
+                        <div id="snackFields" style="display: none;">
+                            <h5 class="text-warning">🍪 Inventory Details</h5>
+                            <div class="row">
+                                <div class="col-6">
+                                    <label>Selling Price</label>
+                                    <input type="number" step="0.01" id="singlePrice" name="priceSmall" class="form-control" placeholder="0.00">
                                 </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Stock Count</label>
-                                    <input type="number" th:field="*{stockLarge}" class="form-control" required>
+                                <div class="col-6">
+                                    <label>Current Stock</label>
+                                    <input type="number" id="singleStock" name="stockSmall" class="form-control" placeholder="Qty">
                                 </div>
                             </div>
                         </div>
 
-                        <div class="mt-4 text-end">
-                            <a href="/products" class="btn btn-outline-secondary me-2">Cancel</a>
-                            <button type="submit" class="btn btn-primary btn-lg px-5">Save Product</button>
-                        </div>
+                        <button type="submit" class="btn btn-primary w-100 mt-4 btn-lg">Save Item</button>
                     </form>
+
+                    <script>
+                        function toggleProductFields() {
+                            var cat = document.getElementById("prodCategory").value;
+                            var juiceDiv = document.getElementById("juiceFields");
+                            var snackDiv = document.getElementById("snackFields");
+
+                            // Get all inputs inside the divs
+                            var juiceInputs = juiceDiv.querySelectorAll("input");
+                            var snackInputs = snackDiv.querySelectorAll("input");
+
+                            if (cat === "Beverage") {
+                                // SHOW BEVERAGE/JUICE
+                                juiceDiv.style.display = "block";
+                                snackDiv.style.display = "none";
+
+                                // Enable Juice inputs, Disable Snack inputs
+                                juiceInputs.forEach(i => i.disabled = false);
+                                snackInputs.forEach(i => i.disabled = true);
+                            }
+                            else {
+                                // SHOW SNACK/SPICE
+                                juiceDiv.style.display = "none";
+                                snackDiv.style.display = "block";
+
+                                // Enable Snack inputs, Disable Juice inputs
+                                snackInputs.forEach(i => i.disabled = false);
+                                juiceInputs.forEach(i => i.disabled = true);
+                            }
+                        }
+
+                        // Run once on load to set initial state
+                        document.addEventListener("DOMContentLoaded", function() {
+                            toggleProductFields();
+                        });
+                    </script>
 
                 </div>
             </div>

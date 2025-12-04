@@ -14,6 +14,7 @@ public class Product {
 
     private String name;
     private String description;
+    private String category; // "Juice", "Snack", "Spice"
 
     // --- 250ML Data ---
     private double priceSmall;
@@ -46,4 +47,7 @@ public class Product {
 
     public int getStockLarge() { return stockLarge; }
     public void setStockLarge(int stockLarge) { this.stockLarge = stockLarge; }
+
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
 }

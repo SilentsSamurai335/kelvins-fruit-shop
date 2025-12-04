@@ -9,24 +9,55 @@ public class Expense {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String itemName; // e.g. "Sugar 10kg"
-    private double amount;   // e.g. 1500.00
-    private LocalDate date;  // When did we buy it?
-    private String quantity; // NEW: e.g. "2 kgs", "5 packets"
+    private LocalDate date;
+
+    private String category; // e.g., "Transport", "Utilities", "Juice Ingredients"
+    private String itemName; // e.g., "Sugar", "Rent", "Lunch"
+    private double amount;   // The Cost
+
+    // --- Conditional Fields (Only used for some categories) ---
+    private String quantity;      // For Ingredients
+
+    // For Transport
+    private Integer trips;
+    private String startLocation; // "From"
+    private String endLocation;   // "To"
+
+    // For Maintenance/Transport descriptions
+    private String description;
 
     public Expense() {
-        this.date = LocalDate.now(); // Default to today
+        this.date = LocalDate.now();
     }
 
-    // Getters & Setters
+    // --- GETTERS AND SETTERS ---
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
-    public String getItemName() { return itemName; }
-    public void setItemName(String itemName) { this.itemName = itemName; }
-    public double getAmount() { return amount; }
-    public void setAmount(double amount) { this.amount = amount; }
+
     public LocalDate getDate() { return date; }
     public void setDate(LocalDate date) { this.date = date; }
+
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
+
+    public String getItemName() { return itemName; }
+    public void setItemName(String itemName) { this.itemName = itemName; }
+
+    public double getAmount() { return amount; }
+    public void setAmount(double amount) { this.amount = amount; }
+
     public String getQuantity() { return quantity; }
     public void setQuantity(String quantity) { this.quantity = quantity; }
+
+    public Integer getTrips() { return trips; }
+    public void setTrips(Integer trips) { this.trips = trips; }
+
+    public String getStartLocation() { return startLocation; }
+    public void setStartLocation(String startLocation) { this.startLocation = startLocation; }
+
+    public String getEndLocation() { return endLocation; }
+    public void setEndLocation(String endLocation) { this.endLocation = endLocation; }
+
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
 }
