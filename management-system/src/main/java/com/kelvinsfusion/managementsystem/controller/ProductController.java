@@ -200,6 +200,103 @@ public class ProductController {
         return "expenses";
     }
 
+    // --- INCOME STATEMENT REPORT ---
+    @GetMapping("/income-statement")
+    public String showIncomeStatement(
+            @RequestParam(value = "month", required = false) Integer month,
+            @RequestParam(value = "year", required = false) Integer year,
+            Model model) {
+
+        // 1. DATE RANGE LOGIC
+        java.time.LocalDate now = java.time.LocalDate.now();
+        int currentMonth = (month != null) ? month : now.getMonthValue();
+        int currentYear = (year != null) ? year : now.getYear();
+        java.time.LocalDate start = java.time.LocalDate.of(currentYear, currentMonth, 1);
+        java.time.LocalDate end = start.plusMonths(1).minusDays(1);
+        String periodTitle = java.time.Month.of(currentMonth).name() + " " + currentYear;
+
+        // 2. DETAILED REVENUE BREAKDOWN
+        // We need to fetch Products to know which Sale belongs to which Category
+        List<com.kelvinsfusion.managementsystem.model.Product> allProducts = productRepository.findAll();
+        // Create a lookup map: "Samosa" -> "Snack", "Mango" -> "Beverage"
+        java.util.Map<String, String> productCatMap = new java.util.HashMap<>();
+        for (com.kelvinsfusion.managementsystem.model.Product p : allProducts) {
+            productCatMap.put(p.getName(), p.getCategory());
+        }
+
+        List<com.kelvinsfusion.managementsystem.model.Sale> sales = saleRepository.findAll();
+
+        double revBeverages = 0.0;
+        double revSnacks = 0.0;
+        double revSpices = 0.0;
+        double totalRevenue = 0.0;
+
+        for (com.kelvinsfusion.managementsystem.model.Sale sale : sales) {
+            if (sale.getSaleDateTime() != null) {
+                java.time.LocalDate saleDate = sale.getSaleDateTime().toLocalDate();
+                // Check if sale is in the selected month
+                if (!saleDate.isBefore(start) && !saleDate.isAfter(end)) {
+
+                    totalRevenue += sale.getTotalAmount();
+
+                    // Determine Category by parsing the name
+                    String soldName = sale.getItemsSold(); // e.g. "Mango (250ml)" or "Samosa"
+
+                    // Remove the size suffix "(250ml)" to get the real product name
+                    String cleanName = soldName;
+                    if (soldName.contains(" (")) {
+                        cleanName = soldName.substring(0, soldName.lastIndexOf(" ("));
+                    }
+
+                    String cat = productCatMap.getOrDefault(cleanName, "Unknown");
+
+                    if ("Beverage".equalsIgnoreCase(cat) || "Juice".equalsIgnoreCase(cat)) {
+                        revBeverages += sale.getTotalAmount();
+                    } else if ("Snack".equalsIgnoreCase(cat)) {
+                        revSnacks += sale.getTotalAmount();
+                    } else if ("Spice".equalsIgnoreCase(cat)) {
+                        revSpices += sale.getTotalAmount();
+                    }
+                }
+            }
+        }
+
+        // 3. DETAILED EXPENSE BREAKDOWN
+        List<com.kelvinsfusion.managementsystem.model.Expense> expenses = expenseRepository.findByDateBetween(start, end);
+
+        // We use a TreeMap to sort categories alphabetically (Gas, Rent, Sugar...)
+        java.util.Map<String, Double> expenseBreakdown = new java.util.TreeMap<>();
+        double totalExpenses = 0.0;
+
+        for (com.kelvinsfusion.managementsystem.model.Expense exp : expenses) {
+            totalExpenses += exp.getAmount();
+            // Add to the specific category bucket
+            String cat = exp.getCategory(); // e.g. "Rent" or "Sugar"
+            expenseBreakdown.put(cat, expenseBreakdown.getOrDefault(cat, 0.0) + exp.getAmount());
+        }
+
+        double netProfit = totalRevenue - totalExpenses;
+
+        // 4. SEND TO HTML
+        model.addAttribute("periodTitle", periodTitle);
+
+        // Revenue Data
+        model.addAttribute("revBeverages", revBeverages);
+        model.addAttribute("revSnacks", revSnacks);
+        model.addAttribute("revSpices", revSpices);
+        model.addAttribute("totalRevenue", totalRevenue);
+
+        // Expense Data
+        model.addAttribute("expenseBreakdown", expenseBreakdown); // The Map of all costs
+        model.addAttribute("totalExpenses", totalExpenses);
+
+        model.addAttribute("netProfit", netProfit);
+        model.addAttribute("selectedMonth", currentMonth);
+        model.addAttribute("selectedYear", currentYear);
+
+        return "income-statement";
+    }
+
     // 2. Save a new Expense
     @PostMapping("/save-expense")
     public String saveExpense(com.kelvinsfusion.managementsystem.model.Expense expense) {

@@ -286,6 +286,12 @@
                 <i class="fas fa-receipt" title="Expenses"></i> <span>Expenses</span>
             </a>
         </li>
+        <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+            <a href="/income-statement" class="nav-link" th:classappend="${activePage == 'income'} ? 'active' : ''">
+                <i class="fas fa-file-invoice-dollar" title="P&L Report"></i> <span>Income Statement</span>
+            </a>
+        </li>
+
             <a href="/" class="nav-link" th:classappend="${activePage == 'home'} ? 'active' : ''">
                 <i class="fas fa-home" title="Dashboard"></i> <span>Dashboard</span>
             </a>
