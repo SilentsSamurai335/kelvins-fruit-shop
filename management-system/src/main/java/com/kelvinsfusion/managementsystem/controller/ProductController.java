@@ -2,7 +2,12 @@ package com.kelvinsfusion.managementsystem.controller;
 
 import com.kelvinsfusion.managementsystem.model.Product;
 import com.kelvinsfusion.managementsystem.model.Sale;
+import com.kelvinsfusion.managementsystem.model.Expense;
+
 import com.kelvinsfusion.managementsystem.repository.ProductRepository;
+import com.kelvinsfusion.managementsystem.repository.SaleRepository;
+import com.kelvinsfusion.managementsystem.repository.ExpenseRepository;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -11,7 +16,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import java.util.List;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.Month;
+import java.util.*;
 
 @Controller
 public class ProductController {
@@ -19,96 +27,117 @@ public class ProductController {
     @Autowired
     private ProductRepository productRepository;
 
-    @Autowired // <--- Add this
-    private com.kelvinsfusion.managementsystem.repository.SaleRepository saleRepository;
+    @Autowired
+    private SaleRepository saleRepository;
 
     @Autowired
-    private com.kelvinsfusion.managementsystem.repository.ExpenseRepository expenseRepository;
+    private ExpenseRepository expenseRepository;
 
-    // 1. Show the blank form
-    @GetMapping("/add-product")
-    public String showAddProductForm(Model model) {
-        model.addAttribute("product", new Product());
-        return "add-product"; // This looks for a file named add-product.html
-    }
+    // --- LOGIN ---
+    @GetMapping("/login")
+    public String showLoginPage() { return "login"; }
 
-    // 2. Handle the "Save" button click
-    @PostMapping("/save-product")
-    public String saveProduct(Product product) {
-        productRepository.save(product); // Saves to MySQL!
-        return "redirect:/"; // Go back home after saving
-    }
-
-    // 3. Show the list of products
-    @GetMapping("/products")
-    public String viewHomePage(Model model) {
-        // This command goes to MySQL, gets ALL rows, and puts them in a list
-        model.addAttribute("listProducts", productRepository.findAll());
-        return "products"; // Looks for products.html
-    }
-    // 4. The Real Home Page
+    // --- DASHBOARD (Graphs Only - NO CHAT) ---
     @GetMapping("/")
     public String showLandingPage(Model model) {
-        List<com.kelvinsfusion.managementsystem.model.Sale> allSales = saleRepository.findAll();
+        List<Sale> allSales = saleRepository.findAll();
 
-        // 1. DATA FOR "PRODUCT MIX"
-        java.util.Map<String, Integer> productMap = new java.util.HashMap<>();
-        for (com.kelvinsfusion.managementsystem.model.Sale sale : allSales) {
-            String juiceName = sale.getItemsSold();
-            productMap.put(juiceName, productMap.getOrDefault(juiceName, 0) + 1);
+        // 1. Product Mix Data
+        Map<String, Integer> productMap = new HashMap<>();
+        for (Sale sale : allSales) {
+            if (sale.getItemsSold() != null) {
+                String raw = sale.getItemsSold();
+                String clean = raw.contains(" (") ? raw.substring(0, raw.lastIndexOf(" (")) : raw;
+                productMap.put(clean, productMap.getOrDefault(clean, 0) + 1);
+            }
         }
-        model.addAttribute("productLabels", productMap.keySet());
-        model.addAttribute("productData", productMap.values());
 
-        // 2. DATA FOR "DAILY TREND" (Safe Mode)
-        java.util.Map<java.time.LocalDate, Double> trendMap = new java.util.TreeMap<>();
-
-        for (com.kelvinsfusion.managementsystem.model.Sale sale : allSales) {
-            // FIX: Only calculate if the date exists!
+        // 2. Trend Data
+        Map<LocalDate, Double> trendMap = new TreeMap<>();
+        for (Sale sale : allSales) {
             if (sale.getSaleDateTime() != null) {
-                java.time.LocalDate date = sale.getSaleDateTime().toLocalDate();
+                LocalDate date = sale.getSaleDateTime().toLocalDate();
                 trendMap.put(date, trendMap.getOrDefault(date, 0.0) + sale.getTotalAmount());
             }
         }
+
+        model.addAttribute("productLabels", productMap.keySet());
+        model.addAttribute("productData", productMap.values());
         model.addAttribute("trendDates", trendMap.keySet());
         model.addAttribute("trendAmounts", trendMap.values());
 
         return "index";
     }
-    // --- REPLACE THE OLD "SELL" METHOD WITH THIS NEW ONE ---
+
+    // --- INVENTORY ---
+    @GetMapping("/products")
+    public String showProducts(Model model) {
+        List<Product> products = productRepository.findAll();
+        List<Product> beverages = products.stream().filter(p -> "Beverage".equals(p.getCategory())).toList();
+        model.addAttribute("listProducts", products);
+        model.addAttribute("beverageList", beverages);
+        return "products";
+    }
+
+    @GetMapping("/add-product")
+    public String showAddProductForm(Model model) {
+        model.addAttribute("product", new Product());
+        return "add-product";
+    }
+
+    @PostMapping("/save-product")
+    public String saveProduct(Product product) {
+        if (product.getStockSmall() < 0) product.setStockSmall(0);
+        if (product.getStockLarge() < 0) product.setStockLarge(0);
+        productRepository.save(product);
+        return "redirect:/products";
+    }
+
+    @GetMapping("/edit/{id}")
+    public String showEditForm(@PathVariable("id") Long id, Model model) {
+        Product product = productRepository.findById(id).orElse(null);
+        model.addAttribute("product", product);
+        return "add-product";
+    }
+
+    @GetMapping("/delete/{id}")
+    public String deleteProduct(@PathVariable("id") Long id) {
+        productRepository.deleteById(id);
+        return "redirect:/products";
+    }
+
     @GetMapping("/sell/{id}")
     public String sellProduct(@PathVariable("id") Long id,
-                              @RequestParam(value = "size", required = false) String size) {
+                              @RequestParam(value = "size", required = false) String size,
+                              @RequestParam(value = "qty", defaultValue = "1") int qty,
+                              @RequestParam(value = "payment", defaultValue = "Cash") String payment,
+                              @RequestParam(value = "customPrice", required = false) Double customPrice,
+                              @RequestParam(value = "customSizeName", required = false) String customSizeName) {
 
         Product product = productRepository.findById(id).orElse(null);
-
         if (product != null) {
             Sale newSale = new Sale();
-            newSale.setSaleDateTime(java.time.LocalDateTime.now());
+            newSale.setSaleDateTime(LocalDateTime.now());
+            newSale.setQuantity(qty);
+            newSale.setPaymentMethod(payment);
 
-            // --- CASE 1: JUICES (Unlimited Stock) ---
             if ("Beverage".equals(product.getCategory())) {
-                newSale.setItemsSold(product.getName() + " (" + size + ")");
-
-                if ("250ml".equals(size)) {
-                    newSale.setTotalAmount(product.getPriceSmall());
+                double price = 0.0;
+                if ("Custom".equals(size) && customPrice != null) {
+                    String label = (customSizeName != null && !customSizeName.isEmpty()) ? customSizeName : "Custom";
+                    newSale.setItemsSold(product.getName() + " (" + label + ")");
+                    price = customPrice;
                 } else {
-                    newSale.setTotalAmount(product.getPriceLarge());
+                    newSale.setItemsSold(product.getName() + " (" + size + ")");
+                    price = "250ml".equals(size) ? product.getPriceSmall() : product.getPriceLarge();
                 }
-                // No stock deduction for juices!
+                newSale.setTotalAmount(price * qty);
                 saleRepository.save(newSale);
-            }
-
-            // --- CASE 2: SNACKS & SPICES (Track Stock) ---
-            else {
-                // We use 'stockSmall' and 'priceSmall' to store the single stock/price
-                if (product.getStockSmall() > 0) {
-                    newSale.setItemsSold(product.getName()); // No size needed
-                    newSale.setTotalAmount(product.getPriceSmall());
-
-                    // Deduct 1 unit
-                    product.setStockSmall(product.getStockSmall() - 1);
-
+            } else {
+                if (product.getStockSmall() >= qty) {
+                    newSale.setItemsSold(product.getName());
+                    newSale.setTotalAmount(product.getPriceSmall() * qty);
+                    product.setStockSmall(product.getStockSmall() - qty);
                     productRepository.save(product);
                     saleRepository.save(newSale);
                 }
@@ -117,190 +146,175 @@ public class ProductController {
         return "redirect:/products";
     }
 
-    // 6. Delete the Product
-    @GetMapping("/delete/{id}")
-    public String deleteProduct(@PathVariable("id") Long id) {
-        productRepository.deleteById(id);
+    @PostMapping("/sell-custom")
+    public String sellCustom(@RequestParam("mixName") String mixName,
+                             @RequestParam(value = "amount", defaultValue = "0.0") double amount,
+                             @RequestParam("payment") String payment) {
+        Sale s = new Sale();
+        s.setItemsSold("Mix: " + mixName);
+        s.setTotalAmount(amount);
+        s.setQuantity(1);
+        s.setPaymentMethod(payment);
+        s.setSaleDateTime(LocalDateTime.now());
+        saleRepository.save(s);
         return "redirect:/products";
     }
 
-    @GetMapping("/login")
-    public String showLoginPage() {
-        return "login"; // Looks for login.html
-    }
-    // 1. Show the Expenses Page
-    @GetMapping("/expenses")
-    public String showExpenses(
-            @RequestParam(value = "period", required = false) String period,
-            @RequestParam(value = "month", required = false) Integer month,
-            @RequestParam(value = "year", required = false) Integer year,
-            @RequestParam(value = "category", required = false) String category,
-            Model model) {
-
-        // --- 1. DATE FILTER LOGIC ---
-        java.time.LocalDate now = java.time.LocalDate.now();
-        java.time.LocalDate start = now.minusYears(100); // Default: All time
-        java.time.LocalDate end = now;
-        String periodTitle = "All Time";
+    // --- SALES HISTORY ---
+    @GetMapping("/sales")
+    public String showSales(@RequestParam(value = "period", required = false) String period,
+                            @RequestParam(value = "month", required = false) Integer month,
+                            @RequestParam(value = "year", required = false) Integer year,
+                            Model model) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime start = now.minusYears(100);
+        LocalDateTime end = now;
+        String title = "All Time Sales";
 
         if (month != null && year != null) {
-            start = java.time.LocalDate.of(year, month, 1);
-            end = start.plusMonths(1).minusDays(1);
-            periodTitle = java.time.Month.of(month).name() + " " + year;
+            start = LocalDateTime.of(year, month, 1, 0, 0);
+            end = start.plusMonths(1).minusSeconds(1);
+            title = Month.of(month).name() + " " + year + " Sales";
         } else if ("today".equals(period)) {
-            start = now;
-            end = now;
-            periodTitle = "Today";
+            start = now.toLocalDate().atStartOfDay();
+            title = "Today's Sales";
+        } else if ("week".equals(period)) {
+            start = now.minusDays(now.getDayOfWeek().getValue() - 1).toLocalDate().atStartOfDay();
+            title = "This Week's Sales";
         } else if ("month".equals(period)) {
-            start = now.withDayOfMonth(1);
-            end = now.withDayOfMonth(now.lengthOfMonth());
-            periodTitle = "This Month";
+            start = now.toLocalDate().withDayOfMonth(1).atStartOfDay();
+            title = "This Month's Sales";
         }
 
-        List<com.kelvinsfusion.managementsystem.model.Expense> expenses = expenseRepository.findByDateBetween(start, end);
+        List<Sale> sales = saleRepository.findBySaleDateTimeBetween(start, end);
+        double totalRevenue = sales.stream().mapToDouble(Sale::getTotalAmount).sum();
 
-        // --- 2. CATEGORY FILTER LOGIC ---
-        if (category != null && !category.isEmpty() && !category.equals("ALL")) {
+        model.addAttribute("listSales", sales);
+        model.addAttribute("totalRevenue", totalRevenue);
+        model.addAttribute("periodTitle", title);
+        model.addAttribute("selectedMonth", (month != null) ? month : now.getMonthValue());
+        model.addAttribute("selectedYear", (year != null) ? year : now.getYear());
+        return "sales";
+    }
 
-            // Define Groups
-            java.util.List<String> utilityGroup = java.util.Arrays.asList("Rent", "Gas", "Tap Water", "Garbage", "Token");
-            java.util.List<String> ingredientGroup = java.util.Arrays.asList("Juice Ingredients", "Uji Ingredients", "Snacks", "Spices", "Packaging", "Kitchen Utilities");
-            java.util.List<String> opsGroup = java.util.Arrays.asList("Transport", "Lunch", "Maintenance", "Honorarium");
+    // --- EXPENSES ---
+    @GetMapping("/expenses")
+    public String showExpenses(@RequestParam(value = "period", required = false) String period,
+                               @RequestParam(value = "month", required = false) Integer month,
+                               @RequestParam(value = "year", required = false) Integer year,
+                               @RequestParam(value = "category", required = false) String category,
+                               Model model) {
+        LocalDate now = LocalDate.now();
+        LocalDate start = now.minusYears(100);
+        LocalDate end = now;
+        String title = "All Time";
 
-            if (category.equals("GROUP_UTILITIES")) {
-                expenses = expenses.stream().filter(e -> utilityGroup.contains(e.getCategory())).toList();
-                periodTitle += " (Utilities)";
-            } else if (category.equals("GROUP_INGREDIENTS")) {
-                expenses = expenses.stream().filter(e -> ingredientGroup.contains(e.getCategory())).toList();
-                periodTitle += " (Ingredients)";
-            } else if (category.equals("GROUP_OPERATIONS")) {
-                expenses = expenses.stream().filter(e -> opsGroup.contains(e.getCategory())).toList();
-                periodTitle += " (Operations)";
-            } else {
-                // Exact Match (e.g., just "Rent")
-                String finalCategory = category;
-                expenses = expenses.stream().filter(e -> e.getCategory().equals(finalCategory)).toList();
-                periodTitle += " (" + category + ")";
+        if (month != null && year != null) {
+            start = LocalDate.of(year, month, 1);
+            end = start.plusMonths(1).minusDays(1);
+            title = Month.of(month).name() + " " + year;
+        } else if ("today".equals(period)) {
+            start = now;
+        } else if ("week".equals(period)) {
+            start = now.minusDays(now.getDayOfWeek().getValue() - 1);
+        } else if ("month".equals(period)) {
+            start = now.withDayOfMonth(1);
+        }
+
+        List<Expense> expenses = expenseRepository.findByDateBetween(start, end);
+
+        if (category != null && !category.isEmpty() && !"ALL".equals(category)) {
+            List<String> util = Arrays.asList("Rent", "Gas", "Tap Water", "Garbage", "Token");
+            List<String> ingr = Arrays.asList("Juice Ingredients", "Uji Ingredients", "Snacks", "Spices", "Packaging", "Kitchen Utilities", "Sugar");
+            List<String> ops = Arrays.asList("Transport", "Lunch", "Maintenance", "Honorarium");
+
+            if ("GROUP_UTILITIES".equals(category)) expenses = expenses.stream().filter(e -> util.contains(e.getCategory())).toList();
+            else if ("GROUP_INGREDIENTS".equals(category)) expenses = expenses.stream().filter(e -> ingr.contains(e.getCategory())).toList();
+            else if ("GROUP_OPERATIONS".equals(category)) expenses = expenses.stream().filter(e -> ops.contains(e.getCategory())).toList();
+            else {
+                String cat = category;
+                expenses = expenses.stream().filter(e -> cat.equals(e.getCategory())).toList();
             }
         }
 
-        // Calculate Total for the filtered view
-        double totalExpense = expenses.stream().mapToDouble(com.kelvinsfusion.managementsystem.model.Expense::getAmount).sum();
-
+        double total = expenses.stream().mapToDouble(Expense::getAmount).sum();
         model.addAttribute("listExpenses", expenses);
-        model.addAttribute("newExpense", new com.kelvinsfusion.managementsystem.model.Expense());
-        model.addAttribute("totalExpense", totalExpense);
-        model.addAttribute("periodTitle", periodTitle);
-        model.addAttribute("selectedCategory", category);
-
-        // For the Dropdowns
+        model.addAttribute("newExpense", new Expense());
+        model.addAttribute("totalExpense", total);
+        model.addAttribute("periodTitle", title);
         model.addAttribute("selectedMonth", (month != null) ? month : now.getMonthValue());
         model.addAttribute("selectedYear", (year != null) ? year : now.getYear());
-
         return "expenses";
     }
 
-    // --- INCOME STATEMENT REPORT ---
+    @PostMapping("/save-expense")
+    public String saveExpense(Expense expense) {
+        if (expense.getDate() == null) expense.setDate(LocalDate.now());
+        if (expense.getCategory() == null) expense.setCategory("Other");
+        expenseRepository.save(expense);
+        return "redirect:/expenses";
+    }
+
+    // --- INCOME STATEMENT ---
     @GetMapping("/income-statement")
-    public String showIncomeStatement(
-            @RequestParam(value = "month", required = false) Integer month,
-            @RequestParam(value = "year", required = false) Integer year,
-            Model model) {
+    public String showIncomeStatement(@RequestParam(value = "month", required = false) Integer month,
+                                      @RequestParam(value = "year", required = false) Integer year,
+                                      Model model) {
+        LocalDate now = LocalDate.now();
+        int curMonth = (month != null) ? month : now.getMonthValue();
+        int curYear = (year != null) ? year : now.getYear();
+        LocalDate start = LocalDate.of(curYear, curMonth, 1);
+        LocalDate end = start.plusMonths(1).minusDays(1);
+        String title = Month.of(curMonth).name() + " " + curYear;
 
-        // 1. DATE RANGE LOGIC
-        java.time.LocalDate now = java.time.LocalDate.now();
-        int currentMonth = (month != null) ? month : now.getMonthValue();
-        int currentYear = (year != null) ? year : now.getYear();
-        java.time.LocalDate start = java.time.LocalDate.of(currentYear, currentMonth, 1);
-        java.time.LocalDate end = start.plusMonths(1).minusDays(1);
-        String periodTitle = java.time.Month.of(currentMonth).name() + " " + currentYear;
+        // Revenue
+        List<Sale> sales = saleRepository.findAll();
+        double jCash = 0, jMp = 0, uCash = 0, uMp = 0, sCash = 0, sMp = 0;
 
-        // 2. DETAILED REVENUE BREAKDOWN
-        // We need to fetch Products to know which Sale belongs to which Category
-        List<com.kelvinsfusion.managementsystem.model.Product> allProducts = productRepository.findAll();
-        // Create a lookup map: "Samosa" -> "Snack", "Mango" -> "Beverage"
-        java.util.Map<String, String> productCatMap = new java.util.HashMap<>();
-        for (com.kelvinsfusion.managementsystem.model.Product p : allProducts) {
-            productCatMap.put(p.getName(), p.getCategory());
-        }
+        for (Sale s : sales) {
+            if (s.getSaleDateTime() != null) {
+                LocalDate d = s.getSaleDateTime().toLocalDate();
+                if (!d.isBefore(start) && !d.isAfter(end)) {
+                    String i = (s.getItemsSold() != null) ? s.getItemsSold().toLowerCase() : "";
+                    double a = s.getTotalAmount();
+                    boolean isMp = "Mpesa".equalsIgnoreCase(s.getPaymentMethod());
 
-        List<com.kelvinsfusion.managementsystem.model.Sale> sales = saleRepository.findAll();
-
-        double revBeverages = 0.0;
-        double revSnacks = 0.0;
-        double revSpices = 0.0;
-        double totalRevenue = 0.0;
-
-        for (com.kelvinsfusion.managementsystem.model.Sale sale : sales) {
-            if (sale.getSaleDateTime() != null) {
-                java.time.LocalDate saleDate = sale.getSaleDateTime().toLocalDate();
-                // Check if sale is in the selected month
-                if (!saleDate.isBefore(start) && !saleDate.isAfter(end)) {
-
-                    totalRevenue += sale.getTotalAmount();
-
-                    // Determine Category by parsing the name
-                    String soldName = sale.getItemsSold(); // e.g. "Mango (250ml)" or "Samosa"
-
-                    // Remove the size suffix "(250ml)" to get the real product name
-                    String cleanName = soldName;
-                    if (soldName.contains(" (")) {
-                        cleanName = soldName.substring(0, soldName.lastIndexOf(" ("));
-                    }
-
-                    String cat = productCatMap.getOrDefault(cleanName, "Unknown");
-
-                    if ("Beverage".equalsIgnoreCase(cat) || "Juice".equalsIgnoreCase(cat)) {
-                        revBeverages += sale.getTotalAmount();
-                    } else if ("Snack".equalsIgnoreCase(cat)) {
-                        revSnacks += sale.getTotalAmount();
-                    } else if ("Spice".equalsIgnoreCase(cat)) {
-                        revSpices += sale.getTotalAmount();
-                    }
+                    if (i.contains("uji")) { if (isMp) uMp += a; else uCash += a; }
+                    else if (i.contains("cake") || i.contains("cookie") || i.contains("samosa") || i.contains("smokie") || i.contains("snack")) { if (isMp) sMp += a; else sCash += a; }
+                    else { if (isMp) jMp += a; else jCash += a; }
                 }
             }
         }
+        double totalRev = jCash + jMp + uCash + uMp + sCash + sMp;
 
-        // 3. DETAILED EXPENSE BREAKDOWN
-        List<com.kelvinsfusion.managementsystem.model.Expense> expenses = expenseRepository.findByDateBetween(start, end);
+        // Expenses
+        List<Expense> exps = expenseRepository.findByDateBetween(start, end);
+        List<Expense> cJuice = new ArrayList<>(), cUji = new ArrayList<>(), cShared = new ArrayList<>(), eOps = new ArrayList<>();
 
-        // We use a TreeMap to sort categories alphabetically (Gas, Rent, Sugar...)
-        java.util.Map<String, Double> expenseBreakdown = new java.util.TreeMap<>();
-        double totalExpenses = 0.0;
-
-        for (com.kelvinsfusion.managementsystem.model.Expense exp : expenses) {
-            totalExpenses += exp.getAmount();
-            // Add to the specific category bucket
-            String cat = exp.getCategory(); // e.g. "Rent" or "Sugar"
-            expenseBreakdown.put(cat, expenseBreakdown.getOrDefault(cat, 0.0) + exp.getAmount());
+        for (Expense e : exps) {
+            String c = e.getCategory();
+            if ("Juice Ingredients".equals(c)) cJuice.add(e);
+            else if ("Uji Ingredients".equals(c)) cUji.add(e);
+            else if ("Sugar".equals(c) || "Spices".equals(c)) cShared.add(e);
+            else eOps.add(e);
         }
 
-        double netProfit = totalRevenue - totalExpenses;
+        double tCogs = cJuice.stream().mapToDouble(Expense::getAmount).sum() + cUji.stream().mapToDouble(Expense::getAmount).sum() + cShared.stream().mapToDouble(Expense::getAmount).sum();
+        double tOps = eOps.stream().mapToDouble(Expense::getAmount).sum();
+        double gross = totalRev - tCogs;
+        double net = gross - tOps;
 
-        // 4. SEND TO HTML
-        model.addAttribute("periodTitle", periodTitle);
-
-        // Revenue Data
-        model.addAttribute("revBeverages", revBeverages);
-        model.addAttribute("revSnacks", revSnacks);
-        model.addAttribute("revSpices", revSpices);
-        model.addAttribute("totalRevenue", totalRevenue);
-
-        // Expense Data
-        model.addAttribute("expenseBreakdown", expenseBreakdown); // The Map of all costs
-        model.addAttribute("totalExpenses", totalExpenses);
-
-        model.addAttribute("netProfit", netProfit);
-        model.addAttribute("selectedMonth", currentMonth);
-        model.addAttribute("selectedYear", currentYear);
+        model.addAttribute("periodTitle", title);
+        model.addAttribute("juiceCash", jCash); model.addAttribute("juiceMpesa", jMp);
+        model.addAttribute("ujiCash", uCash); model.addAttribute("ujiMpesa", uMp);
+        model.addAttribute("snackCash", sCash); model.addAttribute("snackMpesa", sMp);
+        model.addAttribute("totalSales", totalRev);
+        model.addAttribute("cogsJuice", cJuice); model.addAttribute("cogsUji", cUji); model.addAttribute("cogsShared", cShared);
+        model.addAttribute("expOps", eOps);
+        model.addAttribute("totalCogs", tCogs); model.addAttribute("totalOps", tOps);
+        model.addAttribute("grossProfit", gross); model.addAttribute("netProfit", net);
+        model.addAttribute("selectedMonth", curMonth); model.addAttribute("selectedYear", curYear);
 
         return "income-statement";
-    }
-
-    // 2. Save a new Expense
-    @PostMapping("/save-expense")
-    public String saveExpense(com.kelvinsfusion.managementsystem.model.Expense expense) {
-        expenseRepository.save(expense);
-        return "redirect:/expenses";
     }
 }

@@ -16,6 +16,8 @@ public class Sale {
     private String itemsSold; // We will store names like "Mango, Passion"
     private double totalAmount;
     private LocalDateTime saleDateTime;
+    private int quantity;        // e.g., 3 cups
+    private String paymentMethod; // "Mpesa" or "Cash"
 
     // --- Constructor ---
     public Sale() {
@@ -34,4 +36,10 @@ public class Sale {
 
     public LocalDateTime getSaleDateTime() { return saleDateTime; }
     public void setSaleDateTime(LocalDateTime saleDateTime) { this.saleDateTime = saleDateTime; }
+
+    public int getQuantity() { return quantity; }
+    public void setQuantity(int quantity) { this.quantity = quantity; }
+
+    public String getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
 }

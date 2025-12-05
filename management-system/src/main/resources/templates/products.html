@@ -5,45 +5,20 @@
     <th:block th:replace="~{fragments :: styles}"></th:block>
 </head>
 <body>
-
 <div class="d-flex" id="wrapper">
     <div th:replace="~{fragments :: sidebar(activePage='inventory')}"></div>
-    <div class="card mb-3 border-0 shadow-sm">
-        <div class="card-body">
-            <input type="text" id="searchInput" onkeyup="filterTable()" class="form-control" placeholder="🔍 Search for beverage name (e.g. 'Mango')...">
-        </div>
-    </div>
 
-    <script>
-        function filterTable() {
-            var input, filter, table, tr, td, i, txtValue;
-            input = document.getElementById("searchInput");
-            filter = input.value.toUpperCase();
-            table = document.querySelector(".table");
-            tr = table.getElementsByTagName("tr");
-
-            for (i = 1; i < tr.length; i++) {
-                // Check the Name column (index 1)
-                td = tr[i].getElementsByTagName("td")[1];
-                if (td) {
-                    txtValue = td.textContent || td.innerText;
-                    if (txtValue.toUpperCase().indexOf(filter) > -1) {
-                        tr[i].style.display = "";
-                    } else {
-                        tr[i].style.display = "none";
-                    }
-                }
-            }
-        }
-    </script>
     <div class="main-content">
         <div class="container-fluid">
             <div th:replace="~{fragments :: topbar}"></div>
 
-            <h2 class="fw-bold mb-4">🥤 Inventory & Point of Sale</h2>
-
-            <div class="mb-3">
-                <a href="/add-product" class="btn btn-primary"> + Add New Beverage</a>
+            <div class="row mb-4 align-items-center">
+                <div class="col-md-6">
+                    <h2 class="fw-bold">🥤 Point of Sale</h2>
+                    <div class="mt-2" sec:authorize="hasRole('ADMIN')">
+                        <a href="/add-product" class="btn btn-primary"> + Add New Product</a>
+                    </div>
+                </div>
             </div>
 
             <div class="card shadow-sm border-0">
@@ -51,64 +26,77 @@
                     <table class="table table-hover mb-0 align-middle">
                         <thead class="table-light">
                         <tr>
-                            <th>Name</th>
-                            <th>Description</th>
-                            <th>Pricing</th>
-                            <th>Stock</th>
-                            <th>Actions</th>
+                            <th>Product</th>
+                            <th>Stock/Price</th>
+                            <th style="width: 450px;">Sale Controls</th>
                         </tr>
                         </thead>
                         <tbody>
                         <tr th:each="product : ${listProducts}">
 
                             <td>
-                                <span th:text="${product.name}" class="fw-bold">Name</span><br>
-                                <span class="badge bg-light text-dark border" th:text="${product.category}">Type</span>
-                            </td>
-
-                            <td th:text="${product.description}" class="text-muted small">Desc</td>
-
-                            <td>
-                                <div th:if="${product.category == 'Beverage'}">
-                                    <div class="small">Sm: <span class="fw-bold" th:text="${product.priceSmall}"></span></div>
-                                    <div class="small">Lg: <span class="fw-bold" th:text="${product.priceLarge}"></span></div>
-                                </div>
-                                <div th:unless="${product.category == 'Beverage'}">
-                                    <span class="fw-bold text-success" th:text="'KES ' + ${product.priceSmall}"></span>
+                                <span th:text="${product.name}" class="fw-bold"></span><br>
+                                <span class="badge bg-light text-dark border" th:text="${product.category}"></span>
+                                <div class="small text-muted mt-1" sec:authorize="hasRole('ADMIN')">
+                                    <a th:href="@{/edit/{id}(id=${product.id})}" class="text-secondary text-decoration-none">Edit</a> |
+                                    <a th:href="@{/delete/{id}(id=${product.id})}" class="text-danger text-decoration-none">Delete</a>
                                 </div>
                             </td>
 
                             <td>
                                 <div th:if="${product.category == 'Beverage'}">
-                                    <span class="badge bg-success">Unlimited</span>
+                                    <div class="small">Sm: <b th:text="${product.priceSmall}"></b></div>
+                                    <div class="small">Lg: <b th:text="${product.priceLarge}"></b></div>
                                 </div>
                                 <div th:unless="${product.category == 'Beverage'}">
-                    <span th:class="${product.stockSmall < 5} ? 'badge bg-danger' : 'badge bg-secondary'"
-                          th:text="${product.stockSmall}">
-                    </span>
+                                    <div class="fw-bold text-success" th:text="'KES ' + ${product.priceSmall}"></div>
+                                    <span th:class="${product.stockSmall < 5} ? 'badge bg-danger' : 'badge bg-success'"
+                                          th:text="'Stock: ' + ${product.stockSmall}"></span>
                                 </div>
                             </td>
 
                             <td>
-                                <form th:if="${product.category == 'Beverage'}" th:action="@{/sell/{id}(id=${product.id})}" method="get" class="d-flex gap-2">
-                                    <select name="size" class="form-select form-select-sm" style="width: 80px;">
-                                        <option value="250ml">Sm</option>
-                                        <option value="500ml">Lg</option>
-                                    </select>
-                                    <button type="submit" class="btn btn-success btn-sm">Sell</button>
+                                <form th:action="@{/sell/{id}(id=${product.id})}" method="get" class="row g-1 align-items-center" onsubmit="return handleCustomSale(this)">
+
+                                    <input type="hidden" name="customPrice" class="custom-price-input">
+                                    <input type="hidden" name="customSizeName" class="custom-name-input">
+
+                                    <div class="col-2">
+                                        <input type="number" name="qty" class="form-control form-control-sm text-center" value="1" min="1">
+                                    </div>
+
+                                    <div class="col-5">
+                                        <div th:if="${product.category == 'Beverage'}" class="input-group input-group-sm">
+                                            <select name="size" class="form-select size-select">
+                                                <option value="250ml">250ml</option>
+                                                <option value="500ml">500ml</option>
+                                                <option value="Custom" class="fw-bold text-primary">Custom?</option>
+                                            </select>
+
+                                            <button type="button" class="btn btn-dark"
+                                                    th:data-name="${product.name}"
+                                                    th:data-sm="${product.priceSmall}"
+                                                    th:data-lg="${product.priceLarge}"
+                                                    onclick="openMixModal(this.getAttribute('data-name'), this.getAttribute('data-sm'), this.getAttribute('data-lg'))"
+                                                    title="Create Mix">+</button>
+                                        </div>
+
+                                        <div th:unless="${product.category == 'Beverage'}">
+                                            <input type="hidden" name="size" value="Item">
+                                        </div>
+                                    </div>
+
+                                    <div class="col-3">
+                                        <select name="payment" class="form-select form-select-sm">
+                                            <option value="Cash">Cash</option>
+                                            <option value="Mpesa">Mpesa</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-2">
+                                        <button type="submit" class="btn btn-success btn-sm w-100 fw-bold">Sell</button>
+                                    </div>
                                 </form>
-
-                                <div th:unless="${product.category == 'Beverage'}">
-                                    <a th:if="${product.stockSmall > 0}"
-                                       th:href="@{/sell/{id}(id=${product.id})}"
-                                       class="btn btn-success btn-sm w-100">Sell 1</a>
-
-                                    <span th:unless="${product.stockSmall > 0}" class="badge bg-danger p-1">Empty</span>
-                                </div>
-
-                                <div class="mt-2" sec:authorize="hasRole('ADMIN')">
-                                    <a th:href="@{/delete/{id}(id=${product.id})}" class="text-danger small text-decoration-none">Delete</a>
-                                </div>
                             </td>
                         </tr>
                         </tbody>
@@ -116,8 +104,133 @@
                 </div>
             </div>
         </div>
+
+        <div id="mixModal" class="modal" tabindex="-1" style="display: none; background: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow-lg" style="background-color: var(--card-bg); color: var(--text-color);">
+
+                    <div class="modal-header border-bottom-0">
+                        <h5 class="fw-bold modal-title">🍹 Create Mix</h5>
+                        <button type="button" class="btn-close" onclick="closeMixModal()" style="background-color: white;"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <form th:action="@{/sell-custom}" method="post">
+
+                            <input type="hidden" id="finalMixName" name="mixName">
+                            <input type="hidden" id="basePriceSmall">
+                            <input type="hidden" id="basePriceLarge">
+
+                            <label class="small fw-bold opacity-75">Ingredients</label>
+                            <div class="d-flex flex-column gap-2 mb-3">
+                                <input type="text" id="modalBaseFlavor" class="form-control fw-bold" readonly>
+
+                                <select id="modalFlavor2" class="form-select" onchange="updateModalName()">
+                                    <option value="" selected>+ Add Flavor 2 (Optional)</option>
+                                    <option th:each="bev : ${beverageList}" th:value="${bev.name}" th:text="${bev.name}"></option>
+                                </select>
+
+                                <select id="modalFlavor3" class="form-select" onchange="updateModalName()">
+                                    <option value="" selected>+ Add Flavor 3 (Optional)</option>
+                                    <option th:each="bev : ${beverageList}" th:value="${bev.name}" th:text="${bev.name}"></option>
+                                </select>
+                            </div>
+
+                            <div class="row g-2">
+                                <div class="col-4">
+                                    <label class="small fw-bold opacity-75">Cup Size</label>
+                                    <select id="modalSize" class="form-select" onchange="updateModalPrice()">
+                                        <option value="250ml">250ml</option>
+                                        <option value="500ml">500ml</option>
+                                    </select>
+                                </div>
+                                <div class="col-4">
+                                    <label class="small fw-bold opacity-75">Price</label>
+                                    <input type="number" id="modalAmount" name="amount" class="form-control" readonly>
+                                </div>
+                                <div class="col-4">
+                                    <label class="small fw-bold opacity-75">Payment</label>
+                                    <select name="payment" class="form-select">
+                                        <option value="Cash">Cash</option>
+                                        <option value="Mpesa">Mpesa</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-success w-100 mt-4 py-2 fw-bold" onclick="updateModalName()">Confirm Sale</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
 
+<script>
+    function handleCustomSale(form) {
+        var select = form.querySelector(".size-select");
+        if (!select) return true;
+
+        if (select.value === "Custom") {
+            var sizeName = prompt("Enter Custom Size Name (e.g. '1 Litre'):");
+            if (!sizeName) return false;
+            var price = prompt("Enter Price for " + sizeName + ":");
+            if (price == null || price <= 0) return false;
+
+            form.querySelector(".custom-name-input").value = sizeName;
+            form.querySelector(".custom-price-input").value = price;
+            return true;
+        }
+        return true;
+    }
+
+    // --- UPDATED MIX LOGIC ---
+    function openMixModal(baseFlavor, priceSm, priceLg) {
+        document.getElementById("mixModal").style.display = "block";
+
+        // Set Base Info
+        document.getElementById("modalBaseFlavor").value = baseFlavor;
+        document.getElementById("basePriceSmall").value = priceSm;
+        document.getElementById("basePriceLarge").value = priceLg;
+
+        // Reset Fields
+        document.getElementById("modalFlavor2").value = "";
+        document.getElementById("modalFlavor3").value = "";
+        document.getElementById("modalSize").value = "250ml";
+
+        updateModalPrice();
+        updateModalName();
+    }
+
+    function closeMixModal() {
+        document.getElementById("mixModal").style.display = "none";
+    }
+
+    function updateModalPrice() {
+        var size = document.getElementById("modalSize").value;
+        var pSmall = document.getElementById("basePriceSmall").value;
+        var pLarge = document.getElementById("basePriceLarge").value;
+
+        // Auto-set the price field
+        if (size === "250ml") {
+            document.getElementById("modalAmount").value = pSmall;
+        } else {
+            document.getElementById("modalAmount").value = pLarge;
+        }
+    }
+
+    function updateModalName() {
+        var base = document.getElementById("modalBaseFlavor").value;
+        var f2 = document.getElementById("modalFlavor2").value;
+        var f3 = document.getElementById("modalFlavor3").value;
+        var size = document.getElementById("modalSize").value;
+
+        var mix = base;
+        if (f2) mix += " + " + f2;
+        if (f3) mix += " + " + f3;
+
+        document.getElementById("finalMixName").value = mix + " (" + size + ")";
+    }
+</script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.w3.org/1999/xhtml">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <title>Home - Fruity Fusion</title>
     <th:block th:replace="~{fragments :: styles}"></th:block>
@@ -8,106 +8,97 @@
 <body>
 
 <div class="d-flex" id="wrapper">
-
     <div th:replace="~{fragments :: sidebar(activePage='home')}"></div>
 
     <div class="main-content">
         <div class="container-fluid">
             <div th:replace="~{fragments :: topbar}"></div>
+
             <div class="row mb-4">
-                <div class="col-md-12 text-center">
-                    <img th:src="@{/images/logo-full.png}" alt="Kelvin's Fruity Fusion" style="max-width: 300px; height: auto;">
-                    <p class="text-muted mt-2">Management System Dashboard</p>
+                <div class="col-12">
+                    <h2 class="fw-bold">📊 Executive Dashboard</h2>
+                    <p class="text-muted">Welcome back, <span sec:authentication="name" class="fw-bold text-dark">User</span>!</p>
                 </div>
             </div>
 
-            <div class="row justify-content-center">
-                <div class="row" sec:authorize="hasRole('ADMIN')">
-
-                    <div class="col-md-8 mb-4">
-                        <div class="card shadow-sm border-0 h-100">
-                            <div class="card-header bg-white">
-                                <h5 class="fw-bold text-success mb-0">📈 Daily Revenue Trend</h5>
-                            </div>
-                            <div class="card-body">
-                                <canvas id="trendChart"></canvas>
-                            </div>
+            <div class="row" sec:authorize="hasRole('ADMIN')">
+                <div class="col-md-8 mb-4">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-header bg-white">
+                            <h5 class="fw-bold text-success mb-0">📈 Revenue Trend</h5>
                         </div>
-                    </div>
-
-                    <div class="col-md-4 mb-4">
-                        <div class="card shadow-sm border-0 h-100">
-                            <div class="card-header bg-white">
-                                <h5 class="fw-bold text-warning mb-0">🍕 Product Mix</h5>
-                            </div>
-                            <div class="card-body">
-                                <canvas id="productChart"></canvas>
-                            </div>
+                        <div class="card-body">
+                            <canvas id="trendChart"></canvas>
                         </div>
                     </div>
                 </div>
-
-                <div class="col-md-8 text-center" sec:authorize="!hasRole('ADMIN')">
-                    <div class="alert alert-info p-5">
-                        <h4>👋 Hello, Cashier!</h4>
-                        <p>Ready to make some sales?</p>
-                        <a href="/products" class="btn btn-primary btn-lg mt-3">Go to POS System</a>
+                <div class="col-md-4 mb-4">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-header bg-white">
+                            <h5 class="fw-bold text-warning mb-0">🍕 Product Popularity</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="productChart"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="text-center mt-5">
-                <a href="/products" class="btn btn-primary btn-lg px-5">Go to POS / Inventory</a>
+            <div class="row" sec:authorize="!hasRole('ADMIN')">
+                <div class="col-12 text-center mt-5">
+                    <div class="alert alert-light shadow-sm p-5 border">
+                        <h2>👋 Ready to Sell?</h2>
+                        <p class="text-muted">Go to the Inventory page to start serving customers.</p>
+                        <a href="/products" class="btn btn-primary btn-lg">Open POS System</a>
+                    </div>
+                </div>
             </div>
+
         </div>
     </div>
 </div>
 
 <script th:inline="javascript">
-    // --- CHART 1: LINE GRAPH (Revenue) ---
     var trendLabels = [[${trendDates}]];
     var trendData = [[${trendAmounts}]];
+    const ctxTrend = document.getElementById('trendChart');
+    if (ctxTrend) {
+        new Chart(ctxTrend, {
+            type: 'line',
+            data: {
+                labels: trendLabels,
+                datasets: [{
+                    label: 'Daily Sales (KES)',
+                    data: trendData,
+                    borderColor: '#198754',
+                    backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                    borderWidth: 3,
+                    pointBackgroundColor: '#FFC107',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: { scales: { y: { beginAtZero: true } } }
+        });
+    }
 
-    new Chart(document.getElementById('trendChart'), {
-        type: 'line', // KELVIN WANTED A LINE GRAPH
-        data: {
-            labels: trendLabels,
-            datasets: [{
-                label: 'Daily Revenue (KES)',
-                data: trendData,
-                borderColor: '#198754', // Green Line
-                backgroundColor: 'rgba(25, 135, 84, 0.1)',
-                borderWidth: 2,
-                fill: true,
-                tension: 0.3 // Makes the line curved and smooth
-            }]
-        },
-        options: { scales: { y: { beginAtZero: true } } }
-    });
-
-    // --- CHART 2: DOUGHNUT (Products with Different Colors) ---
     var productLabels = [[${productLabels}]];
     var productData = [[${productData}]];
-
-    new Chart(document.getElementById('productChart'), {
-        type: 'doughnut', // Best for comparing products
-        data: {
-            labels: productLabels,
-            datasets: [{
-                data: productData,
-                backgroundColor: [
-                    '#FFC107', // Yellow
-                    '#DC3545', // Red
-                    '#0D6EFD', // Blue
-                    '#198754', // Green
-                    '#6610F2', // Purple
-                    '#FD7E14'  // Orange
-                ],
-                borderWidth: 0
-            }]
-        }
-    });
+    const ctxProduct = document.getElementById('productChart');
+    if (ctxProduct) {
+        new Chart(ctxProduct, {
+            type: 'doughnut',
+            data: {
+                labels: productLabels,
+                datasets: [{
+                    data: productData,
+                    backgroundColor: ['#FFC107', '#DC3545', '#0D6EFD', '#198754', '#6610F2', '#FD7E14'],
+                    borderWidth: 2
+                }]
+            },
+            options: { plugins: { legend: { position: 'bottom' } } }
+        });
+    }
 </script>
-
 </body>
 </html>

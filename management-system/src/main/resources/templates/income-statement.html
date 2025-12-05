@@ -3,22 +3,41 @@
 <head>
     <title>Income Statement - Fruity Fusion</title>
     <th:block th:replace="~{fragments :: styles}"></th:block>
+
+    <style>
+        /* Force table borders to be visible in dark mode */
+        [data-theme="dark"] .table-bordered {
+            border-color: #495057 !important;
+        }
+        [data-theme="dark"] .table-bordered td,
+        [data-theme="dark"] .table-bordered th {
+            border-color: #495057 !important;
+            color: #f8f9fa !important;
+        }
+        /* Make headers slightly lighter grey in dark mode */
+        [data-theme="dark"] thead tr {
+            background-color: #343a40 !important;
+        }
+        /* Fix the card background */
+        [data-theme="dark"] .card-header {
+            background-color: var(--card-bg) !important;
+            color: var(--text-color) !important;
+        }
+    </style>
 </head>
 <body>
 <div class="d-flex" id="wrapper">
-
     <div th:replace="~{fragments :: sidebar(activePage='income')}"></div>
 
     <div class="main-content">
         <div class="container-fluid">
-
             <div th:replace="~{fragments :: topbar}"></div>
 
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2 class="fw-bold">📑 Income Statement</h2>
 
                 <form action="/income-statement" method="get" class="d-flex gap-2">
-                    <select name="month" class="form-select">
+                    <select name="month" class="form-select" style="width: 110px;">
                         <option value="1" th:selected="${selectedMonth == 1}">Jan</option>
                         <option value="2" th:selected="${selectedMonth == 2}">Feb</option>
                         <option value="3" th:selected="${selectedMonth == 3}">Mar</option>
@@ -37,66 +56,128 @@
                 </form>
             </div>
 
-            <div class="card border-0 shadow-lg mx-auto" style="max-width: 800px;">
-                <div class="card-header text-center py-4 border-bottom-0">
+            <div class="card border-0 shadow-lg mx-auto" style="max-width: 900px;">
+
+                <div class="card-header text-center py-3 border-bottom-0">
                     <img th:src="@{/images/logo-full.png}" alt="Logo" style="max-width: 150px; margin-bottom: 10px;">
-                    <h4 class="fw-bold text-uppercase">Profit & Loss Statement</h4>
-                    <p class="text-muted mb-0" th:text="'Period: ' + ${periodTitle}">Period: December 2025</p>
+                    <h4 class="fw-bold text-decoration-underline">KELVIN'S FRUITY FUSION</h4>
+                    <h5 class="fw-bold text-uppercase">INCOME STATEMENT</h5>
+                    <p class="fw-bold mb-0 opacity-75" th:text="'FOR THE MONTH OF ' + ${periodTitle}"></p>
                 </div>
 
-                <div class="card-body p-5">
+                <div class="card-body p-0">
+                    <table class="table table-bordered mb-0">
+                        <thead>
+                        <tr><th colspan="3" class="fw-bold fs-5">Sales</th></tr>
+                        </thead>
+                        <tbody>
+                        <tr><td colspan="3" class="fw-bold ps-4">Juice Sales</td></tr>
+                        <tr>
+                            <td class="ps-5">CASH</td>
+                            <td class="text-end" th:text="${#numbers.formatDecimal(juiceCash, 1, 'COMMA', 0, 'POINT')}"></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td class="ps-5">MPESA</td>
+                            <td class="text-end" th:text="${#numbers.formatDecimal(juiceMpesa, 1, 'COMMA', 0, 'POINT')}"></td>
+                            <td class="text-end fw-bold" th:text="${#numbers.formatDecimal(juiceCash + juiceMpesa, 1, 'COMMA', 0, 'POINT')}"></td>
+                        </tr>
 
-                    <h6 class="fw-bold text-success text-uppercase mb-3">Revenue Streams</h6>
+                        <tr><td colspan="3" class="fw-bold ps-4">Uji Sales</td></tr>
+                        <tr>
+                            <td class="ps-5">CASH</td>
+                            <td class="text-end" th:text="${#numbers.formatDecimal(ujiCash, 1, 'COMMA', 0, 'POINT')}"></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td class="ps-5">MPESA</td>
+                            <td class="text-end" th:text="${#numbers.formatDecimal(ujiMpesa, 1, 'COMMA', 0, 'POINT')}"></td>
+                            <td class="text-end fw-bold" th:text="${#numbers.formatDecimal(ujiCash + ujiMpesa, 1, 'COMMA', 0, 'POINT')}"></td>
+                        </tr>
 
-                    <div class="d-flex justify-content-between mb-1">
-                        <span>🥤 Beverages (Juice, Porridge)</span>
-                        <span class="fw-bold" th:text="${#numbers.formatDecimal(revBeverages, 1, 'COMMA', 2, 'POINT')}">0.00</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-1">
-                        <span>🍪 Snacks</span>
-                        <span class="fw-bold" th:text="${#numbers.formatDecimal(revSnacks, 1, 'COMMA', 2, 'POINT')}">0.00</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-1">
-                        <span>🌶️ Spices</span>
-                        <span class="fw-bold" th:text="${#numbers.formatDecimal(revSpices, 1, 'COMMA', 2, 'POINT')}">0.00</span>
-                    </div>
+                        <tr><td colspan="3" class="fw-bold ps-4">Snacks (Cupcakes/Cookies)</td></tr>
+                        <tr>
+                            <td class="ps-5">CASH</td>
+                            <td class="text-end" th:text="${#numbers.formatDecimal(snackCash, 1, 'COMMA', 0, 'POINT')}"></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td class="ps-5">MPESA</td>
+                            <td class="text-end" th:text="${#numbers.formatDecimal(snackMpesa, 1, 'COMMA', 0, 'POINT')}"></td>
+                            <td class="text-end fw-bold" th:text="${#numbers.formatDecimal(snackCash + snackMpesa, 1, 'COMMA', 0, 'POINT')}"></td>
+                        </tr>
 
-                    <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top border-success">
-                        <span class="fw-bold text-success">Total Gross Revenue</span>
-                        <span class="fw-bold text-success" th:text="'+ ' + ${#numbers.formatDecimal(totalRevenue, 1, 'COMMA', 2, 'POINT')}"></span>
-                    </div>
+                        <tr class="fw-bold fs-5">
+                            <td>Total Sales</td>
+                            <td></td>
+                            <td class="text-end" th:text="${#numbers.formatDecimal(totalSales, 1, 'COMMA', 0, 'POINT')}"></td>
+                        </tr>
+                        </tbody>
 
-                    <h6 class="fw-bold text-danger text-uppercase mt-5 mb-3">Expense Breakdown</h6>
+                        <thead>
+                        <tr><th colspan="3" class="text-center fw-bold fs-5 mt-3">Cost of Goods Sold</th></tr>
+                        </thead>
+                        <tbody>
+                        <tr><td colspan="3" class="fw-bold ps-4">Juice Ingredients</td></tr>
+                        <tr th:each="exp : ${cogsJuice}">
+                            <td class="ps-5" th:text="${exp.itemName} + ' (' + ${exp.quantity} + ')'"></td>
+                            <td class="text-end" th:text="${#numbers.formatDecimal(exp.amount, 1, 'COMMA', 0, 'POINT')}"></td>
+                            <td></td>
+                        </tr>
 
-                    <div th:each="entry : ${expenseBreakdown}" class="d-flex justify-content-between mb-1 small">
-                        <span th:text="${entry.key}">Rent</span> <span th:text="${#numbers.formatDecimal(entry.value, 1, 'COMMA', 2, 'POINT')}">5000.00</span>
-                    </div>
+                        <tr><td colspan="3" class="fw-bold ps-4">Uji Ingredients</td></tr>
+                        <tr th:each="exp : ${cogsUji}">
+                            <td class="ps-5" th:text="${exp.itemName}"></td>
+                            <td class="text-end" th:text="${#numbers.formatDecimal(exp.amount, 1, 'COMMA', 0, 'POINT')}"></td>
+                            <td></td>
+                        </tr>
 
-                    <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top border-danger">
-                        <span class="fw-bold text-danger">Total Expenses</span>
-                        <span class="fw-bold text-danger" th:text="'- ' + ${#numbers.formatDecimal(totalExpenses, 1, 'COMMA', 2, 'POINT')}"></span>
-                    </div>
+                        <tr><td colspan="3" class="fw-bold ps-4">Shared (Uji + Juice)</td></tr>
+                        <tr th:each="exp : ${cogsShared}">
+                            <td class="ps-5" th:text="${exp.itemName} + ' (' + ${exp.quantity} + ')'"></td>
+                            <td class="text-end" th:text="${#numbers.formatDecimal(exp.amount, 1, 'COMMA', 0, 'POINT')}"></td>
+                            <td></td>
+                        </tr>
 
-                    <div class="mt-5 p-4 rounded border"
-                         th:classappend="${netProfit >= 0} ? 'border-success bg-success-subtle' : 'border-danger bg-danger-subtle'">
+                        <tr class="fw-bold fs-5">
+                            <td>Gross Profit</td>
+                            <td></td>
+                            <td class="text-end" th:text="${#numbers.formatDecimal(grossProfit, 1, 'COMMA', 0, 'POINT')}"></td>
+                        </tr>
+                        </tbody>
 
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h3 class="fw-bold mb-0" th:classappend="${netProfit >= 0} ? 'text-success' : 'text-danger'">NET INCOME</h3>
-                                <small class="text-muted">Net Profit (Loss) for Period</small>
-                            </div>
-                            <h3 class="fw-bold mb-0"
+                        <thead>
+                        <tr><th colspan="3" class="fw-bold fs-5 mt-3">Less Other Expenses</th></tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="exp : ${expOps}">
+                            <td class="ps-5" th:text="${exp.category} + ': ' + ${exp.itemName}"></td>
+                            <td class="text-end" th:text="${#numbers.formatDecimal(exp.amount, 1, 'COMMA', 0, 'POINT')}"></td>
+                            <td></td>
+                        </tr>
+
+                        <tr class="fw-bold">
+                            <td class="text-end">Total Other Expenses</td>
+                            <td class="text-end" th:text="${#numbers.formatDecimal(totalOps, 1, 'COMMA', 0, 'POINT')}"></td>
+                            <td class="text-end" th:text="${#numbers.formatDecimal(totalCogs + totalOps, 1, 'COMMA', 0, 'POINT')}"></td>
+                        </tr>
+                        </tbody>
+
+                        <tfoot style="border-top: 3px solid currentColor;">
+                        <tr class="fw-bold fs-4">
+                            <td>NET PROFIT / LOSS</td>
+                            <td></td>
+                            <td class="text-end"
                                 th:classappend="${netProfit >= 0} ? 'text-success' : 'text-danger'"
-                                th:text="${#numbers.formatDecimal(netProfit, 1, 'COMMA', 2, 'POINT')}">
-                                0.00
-                            </h3>
-                        </div>
-                    </div>
-
+                                th:text="${#numbers.formatDecimal(netProfit, 1, 'COMMA', 0, 'POINT')}">
+                            </td>
+                        </tr>
+                        </tfoot>
+                    </table>
                 </div>
 
                 <div class="card-footer text-center py-3">
-                    <button onclick="window.print()" class="btn btn-outline-dark btn-sm">
+                    <button onclick="window.print()" class="btn btn-outline-primary btn-sm">
                         <i class="fas fa-print"></i> Print Report
                     </button>
                 </div>

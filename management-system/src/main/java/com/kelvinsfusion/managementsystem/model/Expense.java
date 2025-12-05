@@ -26,6 +26,9 @@ public class Expense {
     // For Maintenance/Transport descriptions
     private String description;
 
+    // NEW: For Water/Electricity
+    private Double units;
+
     public Expense() {
         this.date = LocalDate.now();
     }
@@ -60,4 +63,7 @@ public class Expense {
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
+    public Double getUnits() { return units; }
+    public void setUnits(Double units) { this.units = units; }
 }

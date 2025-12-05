@@ -62,18 +62,36 @@
                     <table class="table table-hover mb-0 align-middle">
                         <thead class="table-light">
                         <tr>
-                            <th>Receipt ID</th>
-                            <th>Item Sold</th>
-                            <th>Amount (KES)</th>
-                            <th>Time</th>
+                            <th class="text-start">Time</th>
+                            <th class="text-start">Item</th>
+
+                            <th class="text-center">Qty</th>
+                            <th class="text-center">Method</th>
+
+                            <th class="text-end">Amount</th>
                         </tr>
                         </thead>
                         <tbody>
                         <tr th:each="sale : ${listSales}">
-                            <td th:text="${sale.id}" class="text-muted">1</td>
-                            <td th:text="${sale.itemsSold}" class="fw-bold">Mango</td>
-                            <td th:text="${#numbers.formatDecimal(sale.totalAmount, 1, 'COMMA', 2, 'POINT')}">200.00</td>
-                            <td th:text="${#temporals.format(sale.saleDateTime, 'dd-MM-yyyy HH:mm')}"></td>
+                            <td class="text-start" th:text="${#temporals.format(sale.saleDateTime, 'dd-MM HH:mm')}"></td>
+
+                            <td class="text-start">
+                                <span th:text="${sale.itemsSold}" class="fw-bold"></span>
+                            </td>
+
+                            <td class="text-center">
+                                <span class="badge bg-light text-dark border" th:text="${sale.quantity}">1</span>
+                            </td>
+
+                            <td class="text-center">
+                                        <span th:text="${sale.paymentMethod}"
+                                              th:class="${sale.paymentMethod == 'Mpesa'} ? 'badge bg-success' : 'badge bg-secondary'">
+                                        </span>
+                            </td>
+
+                            <td class="text-end fw-bold text-success"
+                                th:text="${#numbers.formatDecimal(sale.totalAmount, 1, 'COMMA', 2, 'POINT')}">
+                            </td>
                         </tr>
                         </tbody>
                     </table>

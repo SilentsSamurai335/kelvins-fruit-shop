@@ -19,7 +19,7 @@
                             <label class="small text-muted fw-bold">Quick Time</label><br>
                             <div class="btn-group">
                                 <a href="/expenses?period=today" class="btn btn-sm btn-outline-secondary">Today</a>
-                                <a href="/expenses?period=month" class="btn btn-sm btn-outline-secondary">Month</a>
+                                <a href="/expenses?period=week" class="btn btn-sm btn-outline-secondary">Week</a> <a href="/expenses?period=month" class="btn btn-sm btn-outline-secondary">Month</a>
                                 <a href="/expenses?period=all" class="btn btn-sm btn-outline-secondary">All</a>
                             </div>
                         </div>
@@ -27,21 +27,21 @@
                         <div class="col-auto">
                             <label class="small text-muted fw-bold">Specific Month</label>
                             <div class="input-group input-group-sm">
-                                <select name="month" class="form-select">
-                                    <option value="1" th:selected="${selectedMonth == 1}">Jan</option>
-                                    <option value="2" th:selected="${selectedMonth == 2}">Feb</option>
-                                    <option value="3" th:selected="${selectedMonth == 3}">Mar</option>
-                                    <option value="4" th:selected="${selectedMonth == 4}">Apr</option>
+                                <select name="month" class="form-select" style="width: 110px;">
+                                    <option value="1" th:selected="${selectedMonth == 1}">January</option>
+                                    <option value="2" th:selected="${selectedMonth == 2}">February</option>
+                                    <option value="3" th:selected="${selectedMonth == 3}">March</option>
+                                    <option value="4" th:selected="${selectedMonth == 4}">April</option>
                                     <option value="5" th:selected="${selectedMonth == 5}">May</option>
-                                    <option value="6" th:selected="${selectedMonth == 6}">Jun</option>
-                                    <option value="7" th:selected="${selectedMonth == 7}">Jul</option>
-                                    <option value="8" th:selected="${selectedMonth == 8}">Aug</option>
-                                    <option value="9" th:selected="${selectedMonth == 9}">Sep</option>
-                                    <option value="10" th:selected="${selectedMonth == 10}">Oct</option>
-                                    <option value="11" th:selected="${selectedMonth == 11}">Nov</option>
-                                    <option value="12" th:selected="${selectedMonth == 12}">Dec</option>
+                                    <option value="6" th:selected="${selectedMonth == 6}">June</option>
+                                    <option value="7" th:selected="${selectedMonth == 7}">July</option>
+                                    <option value="8" th:selected="${selectedMonth == 8}">August</option>
+                                    <option value="9" th:selected="${selectedMonth == 9}">September</option>
+                                    <option value="10" th:selected="${selectedMonth == 10}">October</option>
+                                    <option value="11" th:selected="${selectedMonth == 11}">November</option>
+                                    <option value="12" th:selected="${selectedMonth == 12}">December</option>
                                 </select>
-                                <input type="number" name="year" class="form-control" style="width: 60px;" th:value="${selectedYear}">
+                                <input type="number" name="year" class="form-control" style="width: 90px;" th:value="${selectedYear}">
                             </div>
                         </div>
 
@@ -49,39 +49,18 @@
                             <label class="small text-muted fw-bold">Filter Category</label>
                             <select name="category" class="form-select form-select-sm">
                                 <option value="ALL">Show Everything</option>
-
-                                <option class="fw-bold" value="GROUP_INGREDIENTS">📦 ALL INGREDIENTS</option>
-                                <option value="Juice Ingredients">&nbsp;&nbsp; Juice Ingredients</option>
-                                <option value="Uji Ingredients">&nbsp;&nbsp; Uji Ingredients</option>
-                                <option value="Snacks">&nbsp;&nbsp; Snacks</option>
-                                <option value="Spices">&nbsp;&nbsp; Spices</option>
-                                <option value="Packaging">&nbsp;&nbsp; Packaging</option>
-                                <option value="Kitchen Utilities">&nbsp;&nbsp; Kitchen Utilities</option>
-
                                 <option class="fw-bold" value="GROUP_UTILITIES">💡 ALL UTILITIES</option>
                                 <option value="Rent">&nbsp;&nbsp; Rent</option>
-                                <option value="Gas">&nbsp;&nbsp; Gas</option>
-                                <option value="Tap Water">&nbsp;&nbsp; Tap Water</option>
-                                <option value="Garbage">&nbsp;&nbsp; Garbage</option>
-                                <option value="Token">&nbsp;&nbsp; Electricity Token</option>
-
-                                <option class="fw-bold" value="GROUP_OPERATIONS">🚚 ALL OPERATIONS</option>
-                                <option value="Transport">&nbsp;&nbsp; Transport</option>
-                                <option value="Lunch">&nbsp;&nbsp; Lunch</option>
-                                <option value="Maintenance">&nbsp;&nbsp; Maintenance</option>
-                                <option value="Honorarium">&nbsp;&nbsp; Honorarium</option>
                             </select>
                         </div>
-
                         <div class="col-auto">
-                            <button type="submit" class="btn btn-sm btn-dark">Filter Results</button>
+                            <button type="submit" class="btn btn-sm btn-dark">Filter</button>
                         </div>
                     </form>
                 </div>
-
                 <div class="card-footer d-flex justify-content-between">
-                    <span class="text-muted" th:text="'Viewing: ' + ${periodTitle}">Viewing: All Time</span>
-                    <span class="fw-bold text-danger" th:text="'Total: KES ' + ${totalExpense}">Total: 0.00</span>
+                    <span class="text-muted" th:text="'Viewing: ' + ${periodTitle}"></span>
+                    <span class="fw-bold text-danger" th:text="'Total: KES ' + ${totalExpense}"></span>
                 </div>
             </div>
 
@@ -100,61 +79,42 @@
                             <select th:field="*{category}" id="categorySelect" class="form-select" onchange="toggleFields()" required>
                                 <option value="" disabled selected>Select Category...</option>
 
-                                <optgroup label="Ingredients & Stock">
-                                    <option value="Juice Ingredients">Juice Ingredients (Fruits, Sugar)</option>
-                                    <option value="Uji Ingredients">Uji Power Ingredients</option>
+                                <optgroup label="Ingredients">
+                                    <option value="Sugar">Sugar</option> <option value="Juice Ingredients">Juice Ingredients (Fruit)</option>
+                                    <option value="Uji Ingredients">Uji Ingredients</option>
                                     <option value="Snacks">Snacks</option>
                                     <option value="Spices">Spices</option>
                                     <option value="Packaging">Packaging</option>
-                                    <option value="Kitchen Utilities">Kitchen Utilities</option>
                                 </optgroup>
 
-                                <optgroup label="Utilities (Rent/Bills)">
+                                <optgroup label="Utilities">
                                     <option value="Rent">Rent</option>
                                     <option value="Gas">Gas</option>
-                                    <option value="Tap Water">Tap Water</option>
-                                    <option value="Garbage">Garbage</option>
-                                    <option value="Token">Electricity Token</option>
+                                    <option value="Tap Water">Tap Water</option> <option value="Token">Electricity Token</option> <option value="Garbage">Garbage</option>
                                 </optgroup>
 
                                 <optgroup label="Operations">
                                     <option value="Transport">Transport</option>
-                                    <option value="Lunch">Lunch</option>
-                                    <option value="Maintenance">Maintenance / Repairs</option>
-                                    <option value="Honorarium">Honorarium</option>
                                 </optgroup>
                             </select>
                         </div>
 
                         <div class="mb-3" id="nameField">
-                            <label>Item Name / Description</label>
-                            <input type="text" th:field="*{itemName}" class="form-control" placeholder="e.g. Sugar, Repair Sink">
+                            <label>Item Name</label>
+                            <input type="text" th:field="*{itemName}" class="form-control" placeholder="e.g. Rent Payment">
                         </div>
 
-                        <div class="mb-3" id="quantityField">
+                        <div class="mb-3" id="quantityField" style="display: none;">
                             <label>Quantity</label>
-                            <input type="text" th:field="*{quantity}" class="form-control" placeholder="e.g. 5 kgs, 10 packets">
+                            <input type="text" th:field="*{quantity}" class="form-control" placeholder="e.g. 5 kgs">
+                        </div>
+
+                        <div class="mb-3" id="unitsField" style="display: none;">
+                            <label>Meter Units</label>
+                            <input type="number" step="0.1" th:field="*{units}" class="form-control" placeholder="e.g. 50.5 Units">
                         </div>
 
                         <div id="transportFields" style="display: none;">
-                            <div class="row">
-                                <div class="col-md-4 mb-3">
-                                    <label>No. of Trips</label>
-                                    <input type="number" th:field="*{trips}" class="form-control">
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <label>From</label>
-                                    <input type="text" th:field="*{startLocation}" class="form-control" placeholder="Origin">
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <label>To</label>
-                                    <input type="text" th:field="*{endLocation}" class="form-control" placeholder="Destination">
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <label>Transport Description</label>
-                                <input type="text" th:field="*{description}" class="form-control" placeholder="e.g. Carrying Fruits">
-                            </div>
                         </div>
 
                         <div class="mb-3">
@@ -209,33 +169,32 @@
     function toggleFields() {
         var category = document.getElementById("categorySelect").value;
 
-        // Get the Divs
         var nameDiv = document.getElementById("nameField");
         var qtyDiv = document.getElementById("quantityField");
+        var unitsDiv = document.getElementById("unitsField"); // NEW
         var transDiv = document.getElementById("transportFields");
 
-        // Reset all to hidden/default first
+        // Reset all
         nameDiv.style.display = "block";
         qtyDiv.style.display = "none";
+        unitsDiv.style.display = "none";
         transDiv.style.display = "none";
 
-        // LOGIC
         if (category === "Transport") {
-            // Transport Mode
-            nameDiv.style.display = "none"; // Hide standard name
-            transDiv.style.display = "block"; // Show transport boxes
+            nameDiv.style.display = "none";
+            transDiv.style.display = "block";
         }
-        else if (category === "Rent" || category === "Gas" || category === "Tap Water" || category === "Garbage" || category === "Token") {
-            // Utilities Mode (Simple)
-            // Just Name and Cost. Quantity hidden.
+        else if (category === "Tap Water" || category === "Token") {
+            // Show Units for Water/Power
+            unitsDiv.style.display = "block";
+            // Name is optional here, but we keep it shown for notes like "Meter 1"
         }
-        else if (category === "Lunch" || category === "Honorarium" || category === "Maintenance") {
-            // Ops Mode
-            // Just Description/Name and Cost.
+        else if (category === "Rent" || category === "Gas" || category === "Garbage") {
+            // Just Name & Cost
         }
         else {
-            // Ingredients Mode (Everything else)
-            // Show Quantity
+            // Default (Ingredients + Sugar) shows Quantity
+            // This covers: Juice Ingredients, Uji Ingredients, Snacks, Spices, Packaging, Sugar
             qtyDiv.style.display = "block";
         }
     }
