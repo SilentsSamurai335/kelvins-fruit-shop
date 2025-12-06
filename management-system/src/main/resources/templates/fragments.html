@@ -327,16 +327,6 @@
 
 
     <ul class="nav nav-pills flex-column mb-auto mt-3">
-        <li class="nav-item" sec:authorize="hasRole('ADMIN')">
-            <a href="/expenses" class="nav-link" th:classappend="${activePage == 'expenses'} ? 'active' : ''">
-                <i class="fas fa-receipt" title="Expenses"></i> <span>Expenses</span>
-            </a>
-        </li>
-        <li class="nav-item" sec:authorize="hasRole('ADMIN')">
-            <a href="/income-statement" class="nav-link" th:classappend="${activePage == 'income'} ? 'active' : ''">
-                <i class="fas fa-file-invoice-dollar" title="P&L Report"></i> <span>Income Statement</span>
-            </a>
-        </li>
 
             <a href="/" class="nav-link" th:classappend="${activePage == 'home'} ? 'active' : ''">
                 <i class="fas fa-home" title="Dashboard"></i> <span>Dashboard</span>
@@ -349,14 +339,45 @@
             </a>
         </li>
 
+        <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+            <a href="/expenses" class="nav-link" th:classappend="${activePage == 'expenses'} ? 'active' : ''">
+                <i class="fas fa-receipt" title="Expenses"></i> <span>Expenses</span>
+            </a>
+        </li>
+
         <li class="nav-item">
             <a href="/sales" class="nav-link" th:classappend="${activePage == 'sales'} ? 'active' : ''">
                 <i class="fas fa-chart-line" title="Sales"></i> <span>Sales History</span>
             </a>
         </li>
+
+        <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+            <a href="/income-statement" class="nav-link" th:classappend="${activePage == 'income'} ? 'active' : ''">
+                <i class="fas fa-file-invoice-dollar" title="P&L Report"></i> <span>Income Statement</span>
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a href="/team" class="nav-link" th:classappend="${activePage == 'team'} ? 'active' : ''">
+                <i class="fas fa-users" title="Team Hub"></i> <span>Team Hub</span>
+            </a>
+        </li>
     </ul>
 
-    <div class="p-3">
+    <div class="p-3 mt-auto"> <div class="d-flex align-items-center gap-3 mb-3 px-2 py-2 rounded"
+                                   style="background-color: rgba(0,0,0,0.05);">
+
+        <div class="rounded-circle bg-warning d-flex align-items-center justify-content-center"
+             style="width: 40px; height: 40px; font-size: 1.2rem; color: black;">
+            <i class="fas fa-user"></i>
+        </div>
+
+        <div style="line-height: 1.2;">
+            <small class="d-block text-muted" style="font-size: 0.7rem;">Logged in as</small>
+            <strong style="color: var(--text-color);" sec:authentication="name">User</strong>
+        </div>
+    </div>
+
         <form th:action="@{/logout}" method="post">
             <button type="submit" class="btn btn-outline-danger w-100 fw-bold d-flex justify-content-center align-items-center gap-2">
                 <i class="fas fa-sign-out-alt"></i> <span class="btn-signout-text">Sign Out</span>

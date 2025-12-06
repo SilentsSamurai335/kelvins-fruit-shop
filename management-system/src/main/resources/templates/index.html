@@ -45,11 +45,15 @@
             </div>
 
             <div class="row" sec:authorize="!hasRole('ADMIN')">
-                <div class="col-12 text-center mt-5">
-                    <div class="alert alert-light shadow-sm p-5 border">
-                        <h2>👋 Ready to Sell?</h2>
-                        <p class="text-muted">Go to the Inventory page to start serving customers.</p>
-                        <a href="/products" class="btn btn-primary btn-lg">Open POS System</a>
+                <div class="col-12 mt-5">
+                    <div class="card shadow-sm border-0 text-center p-5">
+                        <div class="card-body">
+                            <h1 class="display-4 mb-3">👋 Ready to Sell?</h1>
+                            <p class="lead text-muted mb-4">Go to the Inventory page to start serving customers.</p>
+                            <a href="/products" class="btn btn-primary btn-lg px-5 fw-bold">
+                                <i class="fas fa-cash-register me-2"></i> Open POS System
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
