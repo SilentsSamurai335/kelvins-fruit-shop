@@ -4,15 +4,16 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.crypto.password.NoOpPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    // Note: We removed the manual wiring. Spring automatically finds your
+    // CustomUserDetailsService because it is annotated with @Service!
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -23,7 +24,7 @@ public class SecurityConfig {
                 )
                 .formLogin((form) -> form
                         .loginPage("/login")
-                        .defaultSuccessUrl("/", true) // Go to home after login
+                        .defaultSuccessUrl("/", true)
                         .permitAll()
                 )
                 .logout((logout) -> logout.logoutSuccessUrl("/login?logout").permitAll());
@@ -32,21 +33,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public UserDetailsService userDetailsService() {
-        // 1. The Manager (Kelvin) - Has Role ADMIN
-        UserDetails manager = User.withDefaultPasswordEncoder()
-                .username("admin")
-                .password("password123")
-                .roles("ADMIN")
-                .build();
-
-        // 2. The Cashier - Has Role USER
-        UserDetails cashier = User.withDefaultPasswordEncoder()
-                .username("staff")
-                .password("1234")
-                .roles("USER")
-                .build();
-
-        return new InMemoryUserDetailsManager(manager, cashier);
+    public PasswordEncoder passwordEncoder() {
+        return NoOpPasswordEncoder.getInstance();
     }
 }

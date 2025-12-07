@@ -5,50 +5,52 @@
     <th:block th:replace="~{fragments :: styles}"></th:block>
 
     <style>
-        /* Force table borders to be visible in dark mode */
-        [data-theme="dark"] .table-bordered {
-            border-color: #495057 !important;
-        }
-        [data-theme="dark"] .table-bordered td,
-        [data-theme="dark"] .table-bordered th {
-            border-color: #495057 !important;
-            color: #f8f9fa !important;
-        }
-        /* Make headers slightly lighter grey in dark mode */
-        [data-theme="dark"] thead tr {
-            background-color: #343a40 !important;
-        }
-        /* Fix the card background */
-        [data-theme="dark"] .card-header {
-            background-color: var(--card-bg) !important;
-            color: var(--text-color) !important;
+        @media print {
+            /* Hide these specific classes */
+            .no-print, .sidebar, .navbar { display: none !important; }
+
+            /* Reset Layout for Paper */
+            body, #wrapper, .main-content, .container-fluid {
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+                background: white !important;
+                color: black !important;
+            }
+
+            /* Clean Card */
+            .card {
+                border: none !important;
+                box-shadow: none !important;
+                max-width: 100% !important;
+            }
+
+            /* Table Borders */
+            .table-bordered { border: 1px solid black !important; }
+            .table-bordered td, .table-bordered th { border: 1px solid black !important; }
         }
     </style>
 </head>
 <body>
 <div class="d-flex" id="wrapper">
-    <div th:replace="~{fragments :: sidebar(activePage='income')}"></div>
+
+    <div class="no-print">
+        <div th:replace="~{fragments :: sidebar(activePage='income')}"></div>
+    </div>
 
     <div class="main-content">
         <div class="container-fluid">
-            <div th:replace="~{fragments :: topbar}"></div>
 
-            <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="no-print">
+                <div th:replace="~{fragments :: topbar}"></div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mb-4 no-print">
                 <h2 class="fw-bold">📑 Income Statement</h2>
-
                 <form action="/income-statement" method="get" class="d-flex gap-2">
                     <select name="month" class="form-select" style="width: 110px;">
                         <option value="1" th:selected="${selectedMonth == 1}">Jan</option>
                         <option value="2" th:selected="${selectedMonth == 2}">Feb</option>
-                        <option value="3" th:selected="${selectedMonth == 3}">Mar</option>
-                        <option value="4" th:selected="${selectedMonth == 4}">Apr</option>
-                        <option value="5" th:selected="${selectedMonth == 5}">May</option>
-                        <option value="6" th:selected="${selectedMonth == 6}">Jun</option>
-                        <option value="7" th:selected="${selectedMonth == 7}">Jul</option>
-                        <option value="8" th:selected="${selectedMonth == 8}">Aug</option>
-                        <option value="9" th:selected="${selectedMonth == 9}">Sep</option>
-                        <option value="10" th:selected="${selectedMonth == 10}">Oct</option>
-                        <option value="11" th:selected="${selectedMonth == 11}">Nov</option>
                         <option value="12" th:selected="${selectedMonth == 12}">Dec</option>
                     </select>
                     <input type="number" name="year" class="form-control" style="width: 80px;" th:value="${selectedYear}">
@@ -59,7 +61,6 @@
             <div class="card border-0 shadow-lg mx-auto" style="max-width: 900px;">
 
                 <div class="card-header text-center py-3 border-bottom-0">
-                    <img th:src="@{/images/logo-full.png}" alt="Logo" style="max-width: 150px; margin-bottom: 10px;">
                     <h4 class="fw-bold text-decoration-underline">KELVIN'S FRUITY FUSION</h4>
                     <h5 class="fw-bold text-uppercase">INCOME STATEMENT</h5>
                     <p class="fw-bold mb-0 opacity-75" th:text="'FOR THE MONTH OF ' + ${periodTitle}"></p>
@@ -67,45 +68,24 @@
 
                 <div class="card-body p-0">
                     <table class="table table-bordered mb-0">
-                        <thead>
-                        <tr><th colspan="3" class="fw-bold fs-5">Sales</th></tr>
-                        </thead>
+                        <thead><tr><th colspan="3" class="fw-bold fs-5">Sales</th></tr></thead>
                         <tbody>
                         <tr><td colspan="3" class="fw-bold ps-4">Juice Sales</td></tr>
-                        <tr>
-                            <td class="ps-5">CASH</td>
-                            <td class="text-end" th:text="${#numbers.formatDecimal(juiceCash, 1, 'COMMA', 0, 'POINT')}"></td>
-                            <td></td>
-                        </tr>
-                        <tr>
-                            <td class="ps-5">MPESA</td>
-                            <td class="text-end" th:text="${#numbers.formatDecimal(juiceMpesa, 1, 'COMMA', 0, 'POINT')}"></td>
-                            <td class="text-end fw-bold" th:text="${#numbers.formatDecimal(juiceCash + juiceMpesa, 1, 'COMMA', 0, 'POINT')}"></td>
-                        </tr>
+                        <tr><td class="ps-5">CASH</td><td class="text-end" th:text="${#numbers.formatDecimal(juiceCash, 1, 'COMMA', 0, 'POINT')}"></td><td></td></tr>
+                        <tr><td class="ps-5">MPESA</td><td class="text-end" th:text="${#numbers.formatDecimal(juiceMpesa, 1, 'COMMA', 0, 'POINT')}"></td><td class="text-end fw-bold" th:text="${#numbers.formatDecimal(juiceCash + juiceMpesa, 1, 'COMMA', 0, 'POINT')}"></td></tr>
 
                         <tr><td colspan="3" class="fw-bold ps-4">Uji Sales</td></tr>
-                        <tr>
-                            <td class="ps-5">CASH</td>
-                            <td class="text-end" th:text="${#numbers.formatDecimal(ujiCash, 1, 'COMMA', 0, 'POINT')}"></td>
-                            <td></td>
-                        </tr>
-                        <tr>
-                            <td class="ps-5">MPESA</td>
-                            <td class="text-end" th:text="${#numbers.formatDecimal(ujiMpesa, 1, 'COMMA', 0, 'POINT')}"></td>
-                            <td class="text-end fw-bold" th:text="${#numbers.formatDecimal(ujiCash + ujiMpesa, 1, 'COMMA', 0, 'POINT')}"></td>
-                        </tr>
+                        <tr><td class="ps-5">CASH</td><td class="text-end" th:text="${#numbers.formatDecimal(ujiCash, 1, 'COMMA', 0, 'POINT')}"></td><td></td></tr>
+                        <tr><td class="ps-5">MPESA</td><td class="text-end" th:text="${#numbers.formatDecimal(ujiMpesa, 1, 'COMMA', 0, 'POINT')}"></td><td class="text-end fw-bold" th:text="${#numbers.formatDecimal(ujiCash + ujiMpesa, 1, 'COMMA', 0, 'POINT')}"></td></tr>
 
-                        <tr><td colspan="3" class="fw-bold ps-4">Snacks (Cupcakes/Cookies)</td></tr>
-                        <tr>
-                            <td class="ps-5">CASH</td>
-                            <td class="text-end" th:text="${#numbers.formatDecimal(snackCash, 1, 'COMMA', 0, 'POINT')}"></td>
-                            <td></td>
-                        </tr>
-                        <tr>
-                            <td class="ps-5">MPESA</td>
-                            <td class="text-end" th:text="${#numbers.formatDecimal(snackMpesa, 1, 'COMMA', 0, 'POINT')}"></td>
-                            <td class="text-end fw-bold" th:text="${#numbers.formatDecimal(snackCash + snackMpesa, 1, 'COMMA', 0, 'POINT')}"></td>
-                        </tr>
+                        <tr><td colspan="3" class="fw-bold ps-4">Cupcakes</td></tr>
+                        <tr><td class="ps-5">Total</td><td class="text-end" th:text="${#numbers.formatDecimal(cakeCash + cakeMpesa, 1, 'COMMA', 0, 'POINT')}"></td><td></td></tr>
+
+                        <tr><td colspan="3" class="fw-bold ps-4">Cookies</td></tr>
+                        <tr><td class="ps-5">Total</td><td class="text-end" th:text="${#numbers.formatDecimal(cookCash + cookMpesa, 1, 'COMMA', 0, 'POINT')}"></td><td></td></tr>
+
+                        <tr><td colspan="3" class="fw-bold ps-4">Spices</td></tr>
+                        <tr><td class="ps-5">Total</td><td class="text-end" th:text="${#numbers.formatDecimal(spiceCash + spiceMpesa, 1, 'COMMA', 0, 'POINT')}"></td><td></td></tr>
 
                         <tr class="fw-bold fs-5">
                             <td>Total Sales</td>
@@ -114,9 +94,7 @@
                         </tr>
                         </tbody>
 
-                        <thead>
-                        <tr><th colspan="3" class="text-center fw-bold fs-5 mt-3">Cost of Goods Sold</th></tr>
-                        </thead>
+                        <thead><tr><th colspan="3" class="text-center fw-bold fs-5 mt-3">Cost of Goods Sold</th></tr></thead>
                         <tbody>
                         <tr><td colspan="3" class="fw-bold ps-4">Juice Ingredients</td></tr>
                         <tr th:each="exp : ${cogsJuice}">
@@ -132,9 +110,9 @@
                             <td></td>
                         </tr>
 
-                        <tr><td colspan="3" class="fw-bold ps-4">Shared (Uji + Juice)</td></tr>
+                        <tr><td colspan="3" class="fw-bold ps-4">Shared (Sugar/Spices)</td></tr>
                         <tr th:each="exp : ${cogsShared}">
-                            <td class="ps-5" th:text="${exp.itemName} + ' (' + ${exp.quantity} + ')'"></td>
+                            <td class="ps-5" th:text="${exp.itemName}"></td>
                             <td class="text-end" th:text="${#numbers.formatDecimal(exp.amount, 1, 'COMMA', 0, 'POINT')}"></td>
                             <td></td>
                         </tr>
@@ -146,9 +124,7 @@
                         </tr>
                         </tbody>
 
-                        <thead>
-                        <tr><th colspan="3" class="fw-bold fs-5 mt-3">Less Other Expenses</th></tr>
-                        </thead>
+                        <thead><tr><th colspan="3" class="fw-bold fs-5 mt-3">Less Other Expenses</th></tr></thead>
                         <tbody>
                         <tr th:each="exp : ${expOps}">
                             <td class="ps-5" th:text="${exp.category} + ': ' + ${exp.itemName}"></td>
@@ -176,9 +152,9 @@
                     </table>
                 </div>
 
-                <div class="card-footer text-center py-3">
-                    <button onclick="window.print()" class="btn btn-outline-primary btn-sm">
-                        <i class="fas fa-print"></i> Print Report
+                <div class="card-footer text-center py-3 no-print">
+                    <button onclick="window.print()" class="btn btn-outline-dark btn-sm">
+                        <i class="fas fa-print"></i> Print / PDF
                     </button>
                 </div>
             </div>

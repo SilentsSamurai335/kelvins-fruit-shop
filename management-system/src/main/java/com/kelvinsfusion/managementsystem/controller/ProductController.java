@@ -7,6 +7,11 @@ import com.kelvinsfusion.managementsystem.model.Expense;
 import com.kelvinsfusion.managementsystem.repository.ProductRepository;
 import com.kelvinsfusion.managementsystem.repository.SaleRepository;
 import com.kelvinsfusion.managementsystem.repository.ExpenseRepository;
+import com.kelvinsfusion.managementsystem.model.TeamLog;
+import com.kelvinsfusion.managementsystem.repository.TeamLogRepository;
+import com.kelvinsfusion.managementsystem.repository.UserRepository;
+import java.security.Principal;
+
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -19,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Month;
+import java.util.ArrayList;
 import java.util.*;
 
 @Controller
@@ -33,13 +39,19 @@ public class ProductController {
     @Autowired
     private ExpenseRepository expenseRepository;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private TeamLogRepository teamLogRepository;
+
     // --- LOGIN ---
     @GetMapping("/login")
     public String showLoginPage() { return "login"; }
 
     // --- DASHBOARD (Graphs Only - NO CHAT) ---
     @GetMapping("/")
-    public String showLandingPage(Model model) {
+    public String showLandingPage(Model model, Principal principal) {
         List<Sale> allSales = saleRepository.findAll();
 
         // 1. Product Mix Data
@@ -65,6 +77,38 @@ public class ProductController {
         model.addAttribute("productData", productMap.values());
         model.addAttribute("trendDates", trendMap.keySet());
         model.addAttribute("trendAmounts", trendMap.values());
+
+        // --- NOTIFICATION LOGIC ---
+        // Get the logged-in user
+        String currentUser = "";
+        if (model.getAttribute("username") != null) {
+            // You might need to fetch username from SecurityContext if not in model
+            // But for now, let's just pass a flag if ANY chat exists
+        }
+
+        // BETTER APPROACH: Add this to the Sidebar Fragment logic or Interceptor
+        // For simplicity, we will calculate "HasUnread" on the Dashboard
+
+        List<TeamLog> allChats = teamLogRepository.findByTypeOrderByTimestampDesc("CHAT");
+        boolean hasNewMessage = false;
+
+        if (!allChats.isEmpty()) {
+            TeamLog lastMsg = allChats.get(0);
+            // If the last message was NOT written by me, it's "New" for me
+            // Note: We need the current user's name.
+            // In a real app, use Principal. For now, we will just show the dot if there is recent activity (last 24 hours).
+            if (lastMsg.getTimestamp().isAfter(LocalDateTime.now().minusHours(24))) {
+                hasNewMessage = true;
+            }
+        }
+        model.addAttribute("hasNewMessage", hasNewMessage);
+
+        if (principal != null && !allChats.isEmpty()) {
+            TeamLog lastMsg = allChats.get(0);
+            if (!lastMsg.getAuthor().equals(principal.getName())) {
+                hasNewMessage = true; // Someone else wrote the last message!
+            }
+        }
 
         return "index";
     }
@@ -161,21 +205,33 @@ public class ProductController {
     }
 
     // --- SALES HISTORY ---
+    // --- SALES HISTORY ---
     @GetMapping("/sales")
     public String showSales(@RequestParam(value = "period", required = false) String period,
                             @RequestParam(value = "month", required = false) Integer month,
                             @RequestParam(value = "year", required = false) Integer year,
+                            @RequestParam(value = "date", required = false) java.time.LocalDate specificDate, // NEW PARAMETER
                             Model model) {
+
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime start = now.minusYears(100);
         LocalDateTime end = now;
         String title = "All Time Sales";
 
-        if (month != null && year != null) {
+        // 1. SPECIFIC DATE (Calendar Picker)
+        if (specificDate != null) {
+            start = specificDate.atStartOfDay();
+            end = specificDate.atTime(23, 59, 59);
+            title = "Sales for " + specificDate;
+        }
+        // 2. SPECIFIC MONTH
+        else if (month != null && year != null) {
             start = LocalDateTime.of(year, month, 1, 0, 0);
             end = start.plusMonths(1).minusSeconds(1);
             title = Month.of(month).name() + " " + year + " Sales";
-        } else if ("today".equals(period)) {
+        }
+        // 3. PRESETS
+        else if ("today".equals(period)) {
             start = now.toLocalDate().atStartOfDay();
             title = "Today's Sales";
         } else if ("week".equals(period)) {
@@ -192,8 +248,12 @@ public class ProductController {
         model.addAttribute("listSales", sales);
         model.addAttribute("totalRevenue", totalRevenue);
         model.addAttribute("periodTitle", title);
+
+        // Pass values back to keep inputs filled
+        model.addAttribute("selectedDate", specificDate);
         model.addAttribute("selectedMonth", (month != null) ? month : now.getMonthValue());
         model.addAttribute("selectedYear", (year != null) ? year : now.getYear());
+
         return "sales";
     }
 
@@ -256,10 +316,13 @@ public class ProductController {
     }
 
     // --- INCOME STATEMENT ---
+    // --- INCOME STATEMENT (High Precision) ---
     @GetMapping("/income-statement")
-    public String showIncomeStatement(@RequestParam(value = "month", required = false) Integer month,
-                                      @RequestParam(value = "year", required = false) Integer year,
-                                      Model model) {
+    public String showIncomeStatement(
+            @RequestParam(value = "month", required = false) Integer month,
+            @RequestParam(value = "year", required = false) Integer year,
+            Model model) {
+
         LocalDate now = LocalDate.now();
         int curMonth = (month != null) ? month : now.getMonthValue();
         int curYear = (year != null) ? year : now.getYear();
@@ -267,48 +330,90 @@ public class ProductController {
         LocalDate end = start.plusMonths(1).minusDays(1);
         String title = Month.of(curMonth).name() + " " + curYear;
 
-        // Revenue
+        // 1. REVENUE BREAKDOWN
         List<Sale> sales = saleRepository.findAll();
-        double jCash = 0, jMp = 0, uCash = 0, uMp = 0, sCash = 0, sMp = 0;
+
+        // Buckets
+        double juiceCash = 0, juiceMpesa = 0;
+        double ujiCash = 0, ujiMpesa = 0;
+        double cakeCash = 0, cakeMpesa = 0;   // Cupcakes
+        double cookCash = 0, cookMpesa = 0;   // Cookies
+        double spiceCash = 0, spiceMpesa = 0; // Spices
+        double snackCash = 0, snackMpesa = 0; // Other Snacks (Samosa, Smokie)
 
         for (Sale s : sales) {
             if (s.getSaleDateTime() != null) {
                 LocalDate d = s.getSaleDateTime().toLocalDate();
                 if (!d.isBefore(start) && !d.isAfter(end)) {
-                    String i = (s.getItemsSold() != null) ? s.getItemsSold().toLowerCase() : "";
-                    double a = s.getTotalAmount();
+                    String item = (s.getItemsSold() != null) ? s.getItemsSold().toLowerCase() : "";
+                    double amt = s.getTotalAmount();
                     boolean isMp = "Mpesa".equalsIgnoreCase(s.getPaymentMethod());
 
-                    if (i.contains("uji")) { if (isMp) uMp += a; else uCash += a; }
-                    else if (i.contains("cake") || i.contains("cookie") || i.contains("samosa") || i.contains("smokie") || i.contains("snack")) { if (isMp) sMp += a; else sCash += a; }
-                    else { if (isMp) jMp += a; else jCash += a; }
+                    // LOGIC: Check name to categorize
+                    if (item.contains("uji")) {
+                        if (isMp) ujiMpesa += amt; else ujiCash += amt;
+                    }
+                    else if (item.contains("cupcake") || item.contains("cake")) {
+                        if (isMp) cakeMpesa += amt; else cakeCash += amt;
+                    }
+                    else if (item.contains("cookie") || item.contains("biscuit")) {
+                        if (isMp) cookMpesa += amt; else cookCash += amt;
+                    }
+                    else if (item.contains("spice") || item.contains("masala") || item.contains("pilau") || item.contains("ginger")) {
+                        if (isMp) spiceMpesa += amt; else spiceCash += amt;
+                    }
+                    else if (item.contains("samosa") || item.contains("smokie") || item.contains("mandazi") || item.contains("snack")) {
+                        if (isMp) snackMpesa += amt; else snackCash += amt;
+                    }
+                    else {
+                        // Default to Juice
+                        if (isMp) juiceMpesa += amt; else juiceCash += amt;
+                    }
                 }
             }
         }
-        double totalRev = jCash + jMp + uCash + uMp + sCash + sMp;
+        double totalSales = juiceCash + juiceMpesa + ujiCash + ujiMpesa + cakeCash + cakeMpesa + cookCash + cookMpesa + spiceCash + spiceMpesa + snackCash + snackMpesa;
 
-        // Expenses
+        // 2. EXPENSE BREAKDOWN
         List<Expense> exps = expenseRepository.findByDateBetween(start, end);
         List<Expense> cJuice = new ArrayList<>(), cUji = new ArrayList<>(), cShared = new ArrayList<>(), eOps = new ArrayList<>();
 
         for (Expense e : exps) {
-            String c = e.getCategory();
-            if ("Juice Ingredients".equals(c)) cJuice.add(e);
-            else if ("Uji Ingredients".equals(c)) cUji.add(e);
-            else if ("Sugar".equals(c) || "Spices".equals(c)) cShared.add(e);
-            else eOps.add(e);
+            String c = (e.getCategory() != null) ? e.getCategory().trim() : "Other";
+
+            // Bucket Logic
+            if ("Juice Ingredients".equalsIgnoreCase(c)) {
+                cJuice.add(e);
+            }
+            else if ("Uji Ingredients".equalsIgnoreCase(c)) {
+                cUji.add(e);
+            }
+            else if ("Sugar".equalsIgnoreCase(c) || "Spices".equalsIgnoreCase(c) || "Shared".equalsIgnoreCase(c)) {
+                cShared.add(e);
+            }
+            else {
+                // SAFETY NET: Anything that doesn't match above goes here!
+                // (Rent, Transport, Tokens, Unknowns...)
+                eOps.add(e);
+            }
         }
 
         double tCogs = cJuice.stream().mapToDouble(Expense::getAmount).sum() + cUji.stream().mapToDouble(Expense::getAmount).sum() + cShared.stream().mapToDouble(Expense::getAmount).sum();
         double tOps = eOps.stream().mapToDouble(Expense::getAmount).sum();
-        double gross = totalRev - tCogs;
+        double gross = totalSales - tCogs;
         double net = gross - tOps;
 
         model.addAttribute("periodTitle", title);
-        model.addAttribute("juiceCash", jCash); model.addAttribute("juiceMpesa", jMp);
-        model.addAttribute("ujiCash", uCash); model.addAttribute("ujiMpesa", uMp);
-        model.addAttribute("snackCash", sCash); model.addAttribute("snackMpesa", sMp);
-        model.addAttribute("totalSales", totalRev);
+
+        // Send ALL Buckets
+        model.addAttribute("juiceCash", juiceCash); model.addAttribute("juiceMpesa", juiceMpesa);
+        model.addAttribute("ujiCash", ujiCash); model.addAttribute("ujiMpesa", ujiMpesa);
+        model.addAttribute("cakeCash", cakeCash); model.addAttribute("cakeMpesa", cakeMpesa);
+        model.addAttribute("cookCash", cookCash); model.addAttribute("cookMpesa", cookMpesa);
+        model.addAttribute("spiceCash", spiceCash); model.addAttribute("spiceMpesa", spiceMpesa);
+        model.addAttribute("snackCash", snackCash); model.addAttribute("snackMpesa", snackMpesa);
+
+        model.addAttribute("totalSales", totalSales);
         model.addAttribute("cogsJuice", cJuice); model.addAttribute("cogsUji", cUji); model.addAttribute("cogsShared", cShared);
         model.addAttribute("expOps", eOps);
         model.addAttribute("totalCogs", tCogs); model.addAttribute("totalOps", tOps);
@@ -316,5 +421,115 @@ public class ProductController {
         model.addAttribute("selectedMonth", curMonth); model.addAttribute("selectedYear", curYear);
 
         return "income-statement";
+    }
+
+    // ==========================================
+    // 7. MANAGE STAFF (Admin Only)
+    // ==========================================
+
+    @GetMapping("/users")
+    public String showUsers(Model model) {
+        model.addAttribute("listUsers", userRepository.findAll());
+        model.addAttribute("newUser", new com.kelvinsfusion.managementsystem.model.User());
+        return "users";
+    }
+
+    @PostMapping("/save-user")
+    public String saveUser(com.kelvinsfusion.managementsystem.model.User user) {
+        // Force role to STAFF (Admins can only create Staff)
+        user.setRole("STAFF");
+        userRepository.save(user);
+        return "redirect:/users";
+    }
+
+    @GetMapping("/delete-user/{id}")
+    public String deleteUser(@PathVariable("id") Long id) {
+        userRepository.deleteById(id);
+        return "redirect:/users";
+    }
+
+    // ==========================================
+    // 7. TEAM HUB & CHAT (Simplified Logic)
+    // ==========================================
+
+    @GetMapping("/team")
+    public String showTeamHub(@RequestParam(value = "staff", required = false) String staffUsername,
+                              Model model,
+                              Principal principal) {
+
+        String currentUser = principal.getName();
+
+        // 1. Notices
+        model.addAttribute("notices", teamLogRepository.findByTypeOrderByTimestampDesc("NOTICE"));
+
+        List<TeamLog> chats = new ArrayList<>();
+        String recipientForForm = ""; // We will calculate who the form sends to
+
+        // CASE A: ADMIN LOGGED IN
+        if ("admin".equals(currentUser)) {
+            List<com.kelvinsfusion.managementsystem.model.User> staffList = userRepository.findAll();
+            staffList.removeIf(u -> "admin".equals(u.getUsername()));
+            model.addAttribute("staffList", staffList);
+
+            if (staffUsername != null && !staffUsername.isEmpty()) {
+                // Admin selected someone
+                chats = teamLogRepository.findChatHistory("admin", staffUsername);
+                model.addAttribute("chatTarget", staffUsername);
+                recipientForForm = staffUsername; // Admin sends to Selected Staff
+            } else {
+                model.addAttribute("chatTarget", "Select a Staff Member");
+                recipientForForm = ""; // No target yet
+            }
+        }
+
+        // CASE B: STAFF LOGGED IN
+        else {
+            // Staff always talks to Admin
+            chats = teamLogRepository.findChatHistory(currentUser, "admin");
+            model.addAttribute("chatTarget", "Manager (Admin)");
+            recipientForForm = "admin"; // Staff sends to Admin
+        }
+
+        model.addAttribute("chats", chats);
+        model.addAttribute("currentRecipient", recipientForForm); // Send this to HTML
+
+        return "team-hub";
+    }
+
+    @PostMapping("/save-chat")
+    public String saveChat(@RequestParam("content") String content,
+                           @RequestParam("recipient") String recipient,
+                           Principal principal) {
+
+        // Safety Check: Don't save if no recipient
+        if (recipient == null || recipient.isEmpty()) {
+            return "redirect:/team";
+        }
+
+        TeamLog log = new TeamLog();
+        log.setContent(content);
+        log.setType("CHAT");
+        log.setAuthor(principal.getName());
+        log.setRecipient(recipient);
+
+        teamLogRepository.save(log);
+
+        if ("admin".equals(principal.getName())) {
+            return "redirect:/team?staff=" + recipient;
+        } else {
+            return "redirect:/team";
+        }
+    }
+
+
+    @PostMapping("/save-update")
+    public String saveUpdate(@RequestParam("content") String content, Principal principal) {
+        TeamLog log = new TeamLog();
+        log.setContent(content);
+        log.setType("NOTICE"); // Public Notice
+        log.setAuthor(principal.getName());
+        // Notices don't need a recipient
+        teamLogRepository.save(log);
+        return "redirect:/team";
     }
 }

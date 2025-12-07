@@ -243,6 +243,16 @@
             }
             .msg-me { align-self: flex-end; background-color: var(--ff-yellow); color: black; }
             .msg-other { align-self: flex-start; background-color: #e9ecef; color: black; }
+
+            /* --- FIX INVISIBLE BUTTONS IN DARK MODE --- */
+            [data-theme="dark"] .btn-outline-dark {
+                color: #f8f9fa !important;       /* White Text */
+                border-color: #f8f9fa !important; /* White Border */
+            }
+            [data-theme="dark"] .btn-outline-dark:hover {
+                background-color: #f8f9fa !important; /* White Fill */
+                color: black !important;              /* Black Text */
+            }
         </style>
 
         <script>
@@ -357,9 +367,20 @@
             </a>
         </li>
 
-        <li class="nav-item">
-            <a href="/team" class="nav-link" th:classappend="${activePage == 'team'} ? 'active' : ''">
-                <i class="fas fa-users" title="Team Hub"></i> <span>Team Hub</span>
+        <li class="nav-item d-flex justify-content-between align-items-center">
+            <a href="/team" class="nav-link w-100" th:classappend="${activePage == 'team'} ? 'active' : ''">
+                <div class="d-flex justify-content-between align-items-center w-100">
+                    <div>
+                        <i class="fas fa-users" title="Team Hub"></i> <span>Team Hub</span>
+                    </div>
+                    <span th:if="${hasNewMessage}" class="badge bg-danger rounded-circle p-1" style="width: 10px; height: 10px;"></span>
+                </div>
+            </a>
+        </li>
+
+        <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+            <a href="/users" class="nav-link" th:classappend="${activePage == 'users'} ? 'active' : ''">
+                <i class="fas fa-user-cog" title="Manage Staff"></i> <span>Manage Staff</span>
             </a>
         </li>
     </ul>

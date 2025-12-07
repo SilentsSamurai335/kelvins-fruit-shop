@@ -1,0 +1,28 @@
+package com.kelvinsfusion.managementsystem.config;
+
+import com.kelvinsfusion.managementsystem.model.User;
+import com.kelvinsfusion.managementsystem.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.stereotype.Component;
+
+@Component
+public class DataInitializer implements CommandLineRunner {
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Override
+    public void run(String... args) throws Exception {
+        // Check if Admin exists. If not, create one.
+        if (userRepository.findByUsername("admin").isEmpty()) {
+            User admin = new User();
+            admin.setUsername("admin");
+            admin.setPassword("password123");
+            admin.setRole("ADMIN");
+            admin.setFullName("Kelvin Owner");
+            userRepository.save(admin);
+            System.out.println("✅ ADMIN ACCOUNT CREATED: admin / password123");
+        }
+    }
+}
