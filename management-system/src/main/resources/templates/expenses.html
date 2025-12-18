@@ -115,6 +115,24 @@
                         </div>
 
                         <div id="transportFields" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label>No. of Trips</label>
+                                    <input type="number" th:field="*{trips}" class="form-control">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label>From</label>
+                                    <input type="text" th:field="*{startLocation}" class="form-control" placeholder="Origin">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label>To</label>
+                                    <input type="text" th:field="*{endLocation}" class="form-control" placeholder="Destination">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label>Transport Description</label>
+                                <input type="text" th:field="*{description}" class="form-control" placeholder="e.g. Carrying Fruits">
+                            </div>
                         </div>
 
                         <div class="mb-3">
@@ -169,35 +187,45 @@
     function toggleFields() {
         var category = document.getElementById("categorySelect").value;
 
+        // Get Divs
         var nameDiv = document.getElementById("nameField");
         var qtyDiv = document.getElementById("quantityField");
-        var unitsDiv = document.getElementById("unitsField"); // NEW
+        var unitsDiv = document.getElementById("unitsField");
         var transDiv = document.getElementById("transportFields");
 
-        // Reset all
-        nameDiv.style.display = "block";
+        // 1. HIDE EVERYTHING FIRST
+        nameDiv.style.display = "none";
         qtyDiv.style.display = "none";
         unitsDiv.style.display = "none";
         transDiv.style.display = "none";
 
+        // 2. SHOW BASED ON CATEGORY
         if (category === "Transport") {
-            nameDiv.style.display = "none";
+            // Show Transport Fields
             transDiv.style.display = "block";
         }
         else if (category === "Tap Water" || category === "Token") {
-            // Show Units for Water/Power
+            // Show Units + Name
+            nameDiv.style.display = "block";
             unitsDiv.style.display = "block";
-            // Name is optional here, but we keep it shown for notes like "Meter 1"
         }
-        else if (category === "Rent" || category === "Gas" || category === "Garbage") {
-            // Just Name & Cost
+        else if (category === "Rent" || category === "Gas" || category === "Garbage" ||
+            category === "Lunch" || category === "Honorarium" || category === "Maintenance") {
+            // Show Only Name
+            nameDiv.style.display = "block";
         }
         else {
-            // Default (Ingredients + Sugar) shows Quantity
-            // This covers: Juice Ingredients, Uji Ingredients, Snacks, Spices, Packaging, Sugar
+            // DEFAULT: Ingredients (Juice, Uji, Snacks, Spices, SUGAR)
+            // Show Name + Quantity
+            nameDiv.style.display = "block";
             qtyDiv.style.display = "block";
         }
     }
+
+    // Run once on load to set correct state
+    document.addEventListener("DOMContentLoaded", function() {
+        toggleFields();
+    });
 </script>
 </body>
 </html>

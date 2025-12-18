@@ -51,6 +51,15 @@
                     <select name="month" class="form-select" style="width: 110px;">
                         <option value="1" th:selected="${selectedMonth == 1}">Jan</option>
                         <option value="2" th:selected="${selectedMonth == 2}">Feb</option>
+                        <option value="3" th:selected="${selectedMonth == 3}">Mar</option>
+                        <option value="4" th:selected="${selectedMonth == 4}">Apr</option>
+                        <option value="5" th:selected="${selectedMonth == 5}">May</option>
+                        <option value="6" th:selected="${selectedMonth == 6}">Jun</option>
+                        <option value="7" th:selected="${selectedMonth == 7}">Jul</option>
+                        <option value="8" th:selected="${selectedMonth == 8}">Aug</option>
+                        <option value="9" th:selected="${selectedMonth == 9}">Sep</option>
+                        <option value="10" th:selected="${selectedMonth == 10}">Oct</option>
+                        <option value="11" th:selected="${selectedMonth == 11}">Nov</option>
                         <option value="12" th:selected="${selectedMonth == 12}">Dec</option>
                     </select>
                     <input type="number" name="year" class="form-control" style="width: 80px;" th:value="${selectedYear}">

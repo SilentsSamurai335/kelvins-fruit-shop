@@ -1,13 +1,10 @@
 package com.kelvinsfusion.managementsystem.controller;
 
-import com.kelvinsfusion.managementsystem.model.Product;
-import com.kelvinsfusion.managementsystem.model.Sale;
-import com.kelvinsfusion.managementsystem.model.Expense;
+import com.kelvinsfusion.managementsystem.model.*;
 
 import com.kelvinsfusion.managementsystem.repository.ProductRepository;
 import com.kelvinsfusion.managementsystem.repository.SaleRepository;
 import com.kelvinsfusion.managementsystem.repository.ExpenseRepository;
-import com.kelvinsfusion.managementsystem.model.TeamLog;
 import com.kelvinsfusion.managementsystem.repository.TeamLogRepository;
 import com.kelvinsfusion.managementsystem.repository.UserRepository;
 import java.security.Principal;
@@ -17,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -523,13 +521,54 @@ public class ProductController {
 
 
     @PostMapping("/save-update")
-    public String saveUpdate(@RequestParam("content") String content, Principal principal) {
-        TeamLog log = new TeamLog();
+    public String saveUpdate(@RequestParam("subject") String subject, // NEW PARAMETER
+                             @RequestParam("content") String content,
+                             Principal principal) {
+
+        // Use full class path to avoid import errors
+        com.kelvinsfusion.managementsystem.model.TeamLog log = new com.kelvinsfusion.managementsystem.model.TeamLog();
+
+        log.setSubject(subject); // Set Subject
         log.setContent(content);
-        log.setType("NOTICE"); // Public Notice
-        log.setAuthor(principal.getName());
-        // Notices don't need a recipient
+        log.setType("NOTICE");
+        log.setAuthor(principal != null ? principal.getName() : "Unknown");
+
         teamLogRepository.save(log);
         return "redirect:/team";
+    }
+
+
+    @GetMapping("/edit-user/{id}")
+    public String showUpdateForm(@PathVariable("id") Integer id, Model model) {
+        // 1. Find the user by ID
+        User user = userRepository.findById(Long.valueOf(id))
+                .orElseThrow(() -> new IllegalArgumentException("Invalid user Id:" + id));
+
+        // 2. Add user to model so the form is pre-filled
+        model.addAttribute("user", user);
+
+        // 3. Return the registration/edit HTML file name
+        // (Assuming you reuse your 'signup' or 'add-staff' form)
+        return "add-staff";
+    }
+
+    @GetMapping("/api/check-latest-message")
+    @ResponseBody
+    public Map<String, Object> checkLatestMessage() {
+        Map<String, Object> response = new HashMap<>();
+
+        // 1. Get the very last message sent to admin
+        // Note: Assuming "admin" is the username. If yours is different, change it here.
+        TeamLog lastMsg = teamLogRepository.findTopByRecipientOrderByTimestampDesc("admin");
+
+        if (lastMsg != null) {
+            response.put("id", lastMsg.getId());
+            response.put("sender", lastMsg.getAuthor()); // Or getSender() depending on your model
+            response.put("content", lastMsg.getContent()); // Optional: to show preview
+        } else {
+            response.put("id", 0);
+        }
+
+        return response;
     }
 }

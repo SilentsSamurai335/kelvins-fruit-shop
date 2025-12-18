@@ -97,6 +97,9 @@
                                         </span>
                             </td>
                             <td>
+                                <a th:href="@{/edit-user/{id}(id=${user.id})}"
+                                   class="btn btn-sm btn-outline-primary"
+                                   style="margin-right: 5px;">Edit</a>
                                 <a th:if="${user.role != 'ADMIN'}"
                                    th:href="@{/delete-user/{id}(id=${user.id})}"
                                    class="btn btn-sm btn-outline-danger">Delete</a>

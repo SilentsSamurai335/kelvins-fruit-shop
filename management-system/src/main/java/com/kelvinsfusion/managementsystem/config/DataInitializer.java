@@ -17,12 +17,12 @@ public class DataInitializer implements CommandLineRunner {
         // Check if Admin exists. If not, create one.
         if (userRepository.findByUsername("admin").isEmpty()) {
             User admin = new User();
-            admin.setUsername("admin");
+            admin.setUsername("kelvin");
             admin.setPassword("password123");
             admin.setRole("ADMIN");
-            admin.setFullName("Kelvin Owner");
+            admin.setFullName("Kelvin");
             userRepository.save(admin);
-            System.out.println("✅ ADMIN ACCOUNT CREATED: admin / password123");
+            System.out.println("✅ ADMIN ACCOUNT CREATED: kelvin / password123");
         }
     }
 }

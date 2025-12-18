@@ -57,15 +57,30 @@
                         </div>
                         <div class="card-body" style="max-height: 200px; overflow-y: auto;">
                             <div id="noticeForm" style="display: none;" class="mb-3">
-                                <form th:action="@{/save-update}" method="post" class="input-group">
-                                    <input type="text" name="content" class="form-control" placeholder="Post a public update..." required>
-                                    <button class="btn btn-dark">Post</button>
+                                <form th:action="@{/save-update}" method="post" class="mb-4 p-3 rounded" style="background-color: rgba(0,0,0,0.05);">
+                                    <input type="hidden" name="type" value="NOTICE">
+
+                                    <div class="mb-2">
+                                        <input type="text" name="subject" class="form-control fw-bold" placeholder="Subject (e.g. Meeting at 10am)" required>
+                                    </div>
+                                    <div class="input-group">
+                                        <textarea name="content" class="form-control" placeholder="Details..." rows="1" required></textarea>
+                                        <button class="btn btn-dark">Post</button>
+                                    </div>
                                 </form>
                             </div>
-                            <div th:each="note : ${notices}" class="border-bottom pb-1 mb-1 small">
-                                <strong th:text="${note.author}" class="text-primary"></strong>:
-                                <span th:text="${note.content}"></span>
-                                <span class="text-muted float-end" th:text="${#temporals.format(note.timestamp, 'dd-MM HH:mm')}"></span>
+
+                            <div  id="live-notice-board">
+                                <div th:each="note : ${notices}" class="card mb-3 border-start border-4 border-warning shadow-sm">
+                                    <div class="card-body p-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <h6 class="fw-bold mb-0 text-dark" th:text="${note.subject}">Subject</h6>
+                                            <small class="text-muted" th:text="${#temporals.format(note.timestamp, 'dd-MM HH:mm')}">Time</small>
+                                        </div>
+                                        <p class="mb-0 small text-secondary" th:text="${note.content}">Content</p>
+                                        <small class="text-primary fw-bold" style="font-size: 0.7em;" th:text="'- ' + ${note.author}">Author</small>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -130,8 +145,65 @@
     </div>
 </div>
 <script>
+    // Auto-Scroll on Load
     var chatArea = document.getElementById("chatArea");
     if(chatArea) chatArea.scrollTop = chatArea.scrollHeight;
+
+    // --- REAL-TIME UPDATER ---
+    setInterval(function() {
+        // Only update if we are looking at the chat
+        if (document.getElementById("chatArea")) {
+            // Fetch the current page in the background
+            fetch(window.location.href)
+                .then(response => response.text())
+                .then(html => {
+                    // Parse the HTML to find the new chat box
+                    var parser = new DOMParser();
+                    var doc = parser.parseFromString(html, 'text/html');
+                    var newChat = doc.getElementById("chatArea").innerHTML;
+
+                    // If content changed, update it!
+                    var currentChat = document.getElementById("chatArea");
+                    if (currentChat.innerHTML !== newChat) {
+                        currentChat.innerHTML = newChat;
+                        // Keep scroll at bottom
+                        currentChat.scrollTop = currentChat.scrollHeight;
+                    }
+                });
+        }
+    }, 3000); // Check every 3 seconds
+
+    // 1. Ask for permission to show popups
+    if (Notification.permission !== "granted") {
+        Notification.requestPermission();
+    }
+
+    // 2. Background Refresh Logic
+    setInterval(function() {
+        fetch(window.location.href)
+            .then(response => response.text())
+            .then(html => {
+                let parser = new DOMParser();
+                let doc = parser.parseFromString(html, 'text/html');
+
+                // Get the new content and the old content
+                let newContent = doc.querySelector('#live-notice-board').innerHTML;
+                let oldContent = document.querySelector('#live-notice-board').innerHTML;
+
+                // If something changed, update the page and notify
+                if (newContent.trim() !== oldContent.trim()) {
+                    document.querySelector('#live-notice-board').innerHTML = newContent;
+
+                    if (Notification.permission === "granted") {
+                        new Notification("New Team Notice", {
+                            body: "The notice board has been updated.",
+                            icon: "/images/logo.png" // Optional
+                        });
+                    }
+                }
+            })
+            .catch(console.error);
+    }, 5000); // Checks every 5 seconds
 </script>
 </body>
 </html>

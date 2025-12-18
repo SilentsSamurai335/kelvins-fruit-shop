@@ -253,6 +253,33 @@
                 background-color: #f8f9fa !important; /* White Fill */
                 color: black !important;              /* Black Text */
             }
+
+            /* --- SIDEBAR TOGGLE FIXES --- */
+
+            /* 1. Hide Clock when Toggled */
+            #wrapper.toggled #liveClockWidget {
+                display: none !important;
+            }
+
+            /* 2. Fix Team Hub Icon Alignment when Toggled */
+            #wrapper.toggled .nav-link {
+                justify-content: center !important; /* Center the icon */
+                padding-left: 0 !important;
+                padding-right: 0 !important;
+            }
+
+            /* 3. Hide the text container inside the link when toggled */
+            #wrapper.toggled .nav-link .link-text-container {
+                display: none !important;
+            }
+
+            /* Hide Profile Text when Sidebar is Toggled */
+            #wrapper.toggled .profile-text-container {
+                display: none !important;
+            }
+            #wrapper.toggled .profile-icon-container {
+                margin: 0 auto; /* Center the icon */
+            }
         </style>
 
         <script>
@@ -319,6 +346,51 @@
                 setInterval(updateClock, 1000);
             });
 
+            // 1. Permission Check
+            if (Notification.permission !== "granted") {
+                Notification.requestPermission();
+            }
+
+            // 2. Poll the server every 5 seconds
+            setInterval(function() {
+                fetch('/api/check-latest-message')
+                    .then(response => response.json())
+                    .then(data => {
+                        // If there is no message, stop.
+                        if (data.id === 0) return;
+
+                        // 3. Check if this is a NEW message
+                        // We store the ID of the last message we saw in the browser's memory
+                        let lastSeenId = localStorage.getItem("lastMessageId");
+
+                        // If the ID from server is bigger than the one we have stored...
+                        if (lastSeenId == null || data.id > parseInt(lastSeenId)) {
+
+                            // 4. IT'S NEW! Show the notification
+                            showChatNotification(data.sender, data.content);
+
+                            // Update our memory so we don't notify again for the same message
+                            localStorage.setItem("lastMessageId", data.id);
+                        }
+                    })
+                    .catch(err => console.error("Chat check failed", err));
+            }, 5000); // Check every 5 seconds
+
+            function showChatNotification(sender, content) {
+                if (Notification.permission === "granted") {
+                    // Customize the notification
+                    const notification = new Notification("New Message from " + sender, {
+                        body: content,
+                        icon: "/images/logo.png" // Make sure this path exists
+                    });
+
+                    // Optional: When admin clicks the popup, take them to the chat
+                    notification.onclick = function() {
+                        window.location.href = "/team-hub"; // Or your chat URL
+                    };
+                }
+            }
+
         </script>
     </th:block>
 </head>
@@ -329,9 +401,9 @@
         <img th:src="@{/images/logo-icon.png}" alt="Logo" class="sidebar-logo" style="width: 50px; transition: all 0.3s;">
         <h5 class="fw-bold mt-2 mb-0 text-truncate" style="color: var(--ff-yellow);">Fruity Fusion</h5>
 
-        <div class="mt-2 text-center small text-muted">
-            <div id="liveTime" class="fw-bold" style="font-size: 1.2em;">--:--</div>
-            <div id="liveDate" style="font-size: 0.8em;">---</div>
+        <div id="liveClockWidget" class="mt-2 text-center small text-muted">
+            <div id="liveTime" ...>--:--</div>
+            <div id="liveDate" ...>---</div>
         </div>
     </div>
 
@@ -367,12 +439,12 @@
             </a>
         </li>
 
-        <li class="nav-item d-flex justify-content-between align-items-center">
-            <a href="/team" class="nav-link w-100" th:classappend="${activePage == 'team'} ? 'active' : ''">
-                <div class="d-flex justify-content-between align-items-center w-100">
-                    <div>
-                        <i class="fas fa-users" title="Team Hub"></i> <span>Team Hub</span>
-                    </div>
+        <li class="nav-item">
+            <a href="/team" class="nav-link" th:classappend="${activePage == 'team'} ? 'active' : ''">
+                <i class="fas fa-users" title="Team Hub"></i>
+
+                <div class="d-flex justify-content-between align-items-center w-100 link-text-container ms-2">
+                    <span>Team Hub</span>
                     <span th:if="${hasNewMessage}" class="badge bg-danger rounded-circle p-1" style="width: 10px; height: 10px;"></span>
                 </div>
             </a>
@@ -385,19 +457,21 @@
         </li>
     </ul>
 
-    <div class="p-3 mt-auto"> <div class="d-flex align-items-center gap-3 mb-3 px-2 py-2 rounded"
-                                   style="background-color: rgba(0,0,0,0.05);">
+    <div class="p-3 mt-auto">
 
-        <div class="rounded-circle bg-warning d-flex align-items-center justify-content-center"
-             style="width: 40px; height: 40px; font-size: 1.2rem; color: black;">
-            <i class="fas fa-user"></i>
-        </div>
+        <div class="d-flex align-items-center gap-3 mb-3 px-2 py-2 rounded profile-container"
+             style="background-color: rgba(0,0,0,0.05);">
 
-        <div style="line-height: 1.2;">
-            <small class="d-block text-muted" style="font-size: 0.7rem;">Logged in as</small>
-            <strong style="color: var(--text-color);" sec:authentication="name">User</strong>
+            <div class="profile-icon-container rounded-circle bg-warning d-flex align-items-center justify-content-center"
+                 style="width: 40px; height: 40px; font-size: 1.2rem; color: black; flex-shrink: 0;">
+                <i class="fas fa-user"></i>
+            </div>
+
+            <div class="profile-text-container" style="line-height: 1.2; overflow: hidden;">
+                <small class="d-block text-muted" style="font-size: 0.7rem;">Logged in as</small>
+                <strong style="color: var(--text-color);" sec:authentication="name">User</strong>
+            </div>
         </div>
-    </div>
 
         <form th:action="@{/logout}" method="post">
             <button type="submit" class="btn btn-outline-danger w-100 fw-bold d-flex justify-content-center align-items-center gap-2">

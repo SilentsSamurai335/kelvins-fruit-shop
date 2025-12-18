@@ -13,7 +13,9 @@ public class TeamLog {
     private String author; // "admin" or "staff"
     private String type;   // "CHAT" or "NOTICE"
     private LocalDateTime timestamp;
-    private String recipient; // NEW: Stores "admin" or "john"
+    private String recipient;
+    private String subject;// NEW: Stores "admin" or "john"
+
 
     public TeamLog() {
         this.timestamp = LocalDateTime.now();
@@ -32,4 +34,6 @@ public class TeamLog {
     public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }
     public String getRecipient() { return recipient; }
     public void setRecipient(String recipient) { this.recipient = recipient; }
+    public String getSubject() { return subject; }
+    public void setSubject(String subject) { this.subject = subject; }
 }

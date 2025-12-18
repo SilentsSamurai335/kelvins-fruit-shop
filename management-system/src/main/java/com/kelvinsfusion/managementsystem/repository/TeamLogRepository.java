@@ -15,4 +15,6 @@ public interface TeamLogRepository extends JpaRepository<TeamLog, Long> {
     // (Sender is Me AND Receiver is You) OR (Sender is You AND Receiver is Me)
     @Query("SELECT t FROM TeamLog t WHERE t.type = 'CHAT' AND ((t.author = ?1 AND t.recipient = ?2) OR (t.author = ?2 AND t.recipient = ?1)) ORDER BY t.timestamp ASC")
     List<TeamLog> findChatHistory(String user1, String user2);
+    // Find the most recent message sent TO 'admin'
+    TeamLog findTopByRecipientOrderByTimestampDesc(String recipient);
 }
