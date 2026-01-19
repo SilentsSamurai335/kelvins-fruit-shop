@@ -1,163 +1,184 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.w3.org/1999/xhtml">
 <head>
-    <title>Inventory - Fruity Fusion</title>
+    <title>POS - Fruity Fusion</title>
     <th:block th:replace="~{fragments :: styles}"></th:block>
 </head>
 <body>
 <div class="d-flex" id="wrapper">
     <div th:replace="~{fragments :: sidebar(activePage='inventory')}"></div>
 
-    <div class="main-content">
-        <div class="container-fluid">
+    <div class="main-content w-100">
+        <div class="container-fluid p-4">
             <div th:replace="~{fragments :: topbar}"></div>
 
-            <div class="row mb-4 align-items-center">
-                <div class="col-md-6">
-                    <h2 class="fw-bold">🥤 Point of Sale</h2>
-                    <div class="mt-2" sec:authorize="hasRole('ADMIN')">
-                        <a href="/add-product" class="btn btn-primary"> + Add New Product</a>
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="fw-bold">🥤 Menu</h2>
+                        <div sec:authorize="hasRole('ADMIN')">
+                            <a href="/add-product" class="btn btn-outline-primary btn-sm">+ New Product</a>
+                        </div>
+                    </div>
+
+                    <div class="card shadow-sm border-0">
+                        <div class="card-body p-0">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Price</th>
+                                    <th>Action</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="product : ${listProducts}">
+                                    <td>
+                                        <div class="fw-bold" th:text="${product.name}"></div>
+                                        <span class="badge bg-light text-dark border" th:text="${product.category}"></span>
+                                    </td>
+
+                                    <td>
+                                        <div th:if="${product.category == 'Beverage'}" class="small text-muted">
+                                            <div>250ml: <span th:text="${product.priceSmall}"></span></div>
+                                            <div>500ml: <span th:text="${product.priceLarge}"></span></div>
+                                        </div>
+                                        <div th:unless="${product.category == 'Beverage'}">
+                                            <span class="fw-bold text-success" th:text="${product.priceSmall}"></span>
+                                            <div class="small" th:classappend="${product.stockSmall < 5} ? 'text-danger' : 'text-muted'"
+                                                 th:text="'Stock: ' + ${product.stockSmall}"></div>
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        <div th:if="${product.category == 'Beverage'}" class="d-flex flex-column gap-2">
+                                            <div class="d-flex gap-1">
+                                                <select class="form-select form-select-sm" style="width: 80px;" th:id="'size-' + ${product.id}">
+                                                    <option value="250ml">250ml</option>
+                                                    <option value="500ml">500ml</option>
+                                                    <option value="Custom" class="fw-bold text-primary">Custom?</option>
+                                                </select>
+
+                                                <input type="number" value="1" min="1" class="form-control form-control-sm" style="width: 50px;" th:id="'qty-bev-' + ${product.id}">
+
+                                                <button class="btn btn-primary btn-sm fw-bold"
+                                                        th:onclick="addBeverageToCart([[${product.id}]], [[${product.name}]], [[${product.priceSmall}]], [[${product.priceLarge}]])">
+                                                    Add
+                                                </button>
+                                            </div>
+
+                                            <button class="btn btn-dark btn-sm w-100"
+                                                    th:onclick="openMixModal([[${product.name}]], [[${product.priceSmall}]], [[${product.priceLarge}]])">
+                                                Create Mix
+                                            </button>
+                                        </div>
+
+                                        <div th:unless="${product.category == 'Beverage'}" class="d-flex gap-2">
+                                            <input type="number" value="1" min="1" class="form-control form-control-sm"
+                                                   style="width: 60px;" th:id="'qty-' + ${product.id}">
+
+                                            <button class="btn btn-success btn-sm fw-bold"
+                                                    th:onclick="addToCartWithQty([[${product.id}]], [[${product.name}]], [[${product.priceSmall}]])">
+                                                Add
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="card shadow-sm border-0">
-                <div class="card-body p-0">
-                    <table class="table table-hover mb-0 align-middle">
-                        <thead class="table-light">
-                        <tr>
-                            <th>Product</th>
-                            <th>Stock/Price</th>
-                            <th style="width: 450px;">Sale Controls</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <tr th:each="product : ${listProducts}">
+                <div class="col-md-4">
+                    <div class="card shadow border-0 sticky-top" style="top: 20px;">
+                        <div class="card-header bg-warning text-dark fw-bold">
+                            🛒 Current Order
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                                <table class="table table-sm table-striped mb-0">
+                                    <thead>
+                                    <tr>
+                                        <th>Item</th>
+                                        <th>Qty</th>
+                                        <th>Total</th>
+                                        <th></th>
+                                    </tr>
+                                    </thead>
+                                    <tbody id="cartItems">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
 
-                            <td>
-                                <span th:text="${product.name}" class="fw-bold"></span><br>
-                                <span class="badge bg-light text-dark border" th:text="${product.category}"></span>
-                                <div class="small text-muted mt-1" sec:authorize="hasRole('ADMIN')">
-                                    <a th:href="@{/edit/{id}(id=${product.id})}" class="text-secondary text-decoration-none">Edit</a> |
-                                    <a th:href="@{/delete/{id}(id=${product.id})}" class="text-danger text-decoration-none">Delete</a>
-                                </div>
-                            </td>
+                        <div class="card-footer bg-white">
+                            <div class="d-flex justify-content-between fw-bold fs-5 mb-3">
+                                <span>Total:</span>
+                                <span>KES <span id="cartTotal">0</span></span>
+                            </div>
 
-                            <td>
-                                <div th:if="${product.category == 'Beverage'}">
-                                    <div class="small">Sm: <b th:text="${product.priceSmall}"></b></div>
-                                    <div class="small">Lg: <b th:text="${product.priceLarge}"></b></div>
-                                </div>
-                                <div th:unless="${product.category == 'Beverage'}">
-                                    <div class="fw-bold text-success" th:text="'KES ' + ${product.priceSmall}"></div>
-                                    <span th:class="${product.stockSmall < 5} ? 'badge bg-danger' : 'badge bg-success'"
-                                          th:text="'Stock: ' + ${product.stockSmall}"></span>
-                                </div>
-                            </td>
+                            <div class="mb-2">
+                                <label class="small text-muted">Phone (For M-Pesa)</label>
+                                <input type="text" id="phoneNumber" class="form-control" placeholder="2547..." value="254">
+                            </div>
 
-                            <td>
-                                <form th:action="@{/sell/{id}(id=${product.id})}" method="get" class="row g-1 align-items-center" onsubmit="return handleCustomSale(this)">
+                            <div class="mb-3">
+                                <label class="small text-muted">Payment Method</label>
+                                <select id="paymentMethod" class="form-select">
+                                    <option value="CASH">Cash</option>
+                                    <option value="MPESA">M-Pesa</option>
+                                </select>
+                            </div>
 
-                                    <input type="hidden" name="customPrice" class="custom-price-input">
-                                    <input type="hidden" name="customSizeName" class="custom-name-input">
-
-                                    <div class="col-2">
-                                        <input type="number" name="qty" class="form-control form-control-sm text-center" value="1" min="1">
-                                    </div>
-
-                                    <div class="col-5">
-                                        <div th:if="${product.category == 'Beverage'}" class="input-group input-group-sm">
-                                            <select name="size" class="form-select size-select">
-                                                <option value="250ml">250ml</option>
-                                                <option value="500ml">500ml</option>
-                                                <option value="Custom" class="fw-bold text-primary">Custom?</option>
-                                            </select>
-
-                                            <button type="button" class="btn btn-dark"
-                                                    th:data-name="${product.name}"
-                                                    th:data-sm="${product.priceSmall}"
-                                                    th:data-lg="${product.priceLarge}"
-                                                    onclick="openMixModal(this.getAttribute('data-name'), this.getAttribute('data-sm'), this.getAttribute('data-lg'))"
-                                                    title="Create Mix">+</button>
-                                        </div>
-
-                                        <div th:unless="${product.category == 'Beverage'}">
-                                            <input type="hidden" name="size" value="Item">
-                                        </div>
-                                    </div>
-
-                                    <div class="col-3">
-                                        <select name="payment" class="form-select form-select-sm">
-                                            <option value="Cash">Cash</option>
-                                            <option value="Mpesa">Mpesa</option>
-                                        </select>
-                                    </div>
-
-                                    <div class="col-2">
-                                        <button type="submit" class="btn btn-success btn-sm w-100 fw-bold">Sell</button>
-                                    </div>
-                                </form>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
+                            <button id="payButton" onclick="processPayment()" class="btn btn-success w-100 py-2 fw-bold">
+                                COMPLETE SALE
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
         <div id="mixModal" class="modal" tabindex="-1" style="display: none; background: rgba(0,0,0,0.5);">
             <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content border-0 shadow-lg" style="background-color: var(--card-bg); color: var(--text-color);">
-
+                <div class="modal-content border-0 shadow-lg">
                     <div class="modal-header border-bottom-0">
                         <h5 class="fw-bold modal-title">🍹 Create Mix</h5>
-                        <button type="button" class="btn-close" onclick="closeMixModal()" style="background-color: white;"></button>
+                        <button type="button" class="btn-close" onclick="closeMixModal()"></button>
                     </div>
-
                     <div class="modal-body">
-                        <form th:action="@{/sell-custom}" method="post">
+                        <input type="hidden" id="basePriceSmall">
+                        <input type="hidden" id="basePriceLarge">
 
-                            <input type="hidden" id="finalMixName" name="mixName">
-                            <input type="hidden" id="basePriceSmall">
-                            <input type="hidden" id="basePriceLarge">
+                        <label class="small fw-bold opacity-75">Base Flavor</label>
+                        <input type="text" id="modalBaseFlavor" class="form-control mb-2 fw-bold" readonly>
 
-                            <label class="small fw-bold opacity-75">Ingredients</label>
-                            <div class="d-flex flex-column gap-2 mb-3">
-                                <input type="text" id="modalBaseFlavor" class="form-control fw-bold" readonly>
+                        <label class="small fw-bold opacity-75">Mix-ins (Optional)</label>
+                        <select id="modalFlavor2" class="form-select mb-2">
+                            <option value="" selected>None</option>
+                            <option th:each="bev : ${listProducts}" th:if="${bev.category == 'Beverage'}" th:value="${bev.name}" th:text="${bev.name}"></option>
+                        </select>
 
-                                <select id="modalFlavor2" class="form-select" onchange="updateModalName()">
-                                    <option value="" selected>+ Add Flavor 2 (Optional)</option>
-                                    <option th:each="bev : ${beverageList}" th:value="${bev.name}" th:text="${bev.name}"></option>
-                                </select>
-
-                                <select id="modalFlavor3" class="form-select" onchange="updateModalName()">
-                                    <option value="" selected>+ Add Flavor 3 (Optional)</option>
-                                    <option th:each="bev : ${beverageList}" th:value="${bev.name}" th:text="${bev.name}"></option>
+                        <div class="row g-2 mb-3">
+                            <div class="col-4">
+                                <label class="small fw-bold">Size</label>
+                                <select id="modalSize" class="form-select" onchange="updateModalPrice()">
+                                    <option value="250ml">250ml</option>
+                                    <option value="500ml">500ml</option>
                                 </select>
                             </div>
-
-                            <div class="row g-2">
-                                <div class="col-4">
-                                    <label class="small fw-bold opacity-75">Cup Size</label>
-                                    <select id="modalSize" class="form-select" onchange="updateModalPrice()">
-                                        <option value="250ml">250ml</option>
-                                        <option value="500ml">500ml</option>
-                                    </select>
-                                </div>
-                                <div class="col-4">
-                                    <label class="small fw-bold opacity-75">Price</label>
-                                    <input type="number" id="modalAmount" name="amount" class="form-control" readonly>
-                                </div>
-                                <div class="col-4">
-                                    <label class="small fw-bold opacity-75">Payment</label>
-                                    <select name="payment" class="form-select">
-                                        <option value="Cash">Cash</option>
-                                        <option value="Mpesa">Mpesa</option>
-                                    </select>
-                                </div>
+                            <div class="col-4">
+                                <label class="small fw-bold">Quantity</label>
+                                <input type="number" id="modalQty" class="form-control" value="1" min="1">
                             </div>
-                            <button type="submit" class="btn btn-success w-100 mt-4 py-2 fw-bold" onclick="updateModalName()">Confirm Sale</button>
-                        </form>
+                            <div class="col-4">
+                                <label class="small fw-bold">Price (Each)</label>
+                                <input type="number" id="modalAmount" class="form-control" readonly>
+                            </div>
+                        </div>
+
+                        <button type="button" class="btn btn-dark w-100 fw-bold" onclick="addMixToCart()">Add Mix to Cart</button>
                     </div>
                 </div>
             </div>
@@ -167,39 +188,99 @@
 </div>
 
 <script>
-    function handleCustomSale(form) {
-        var select = form.querySelector(".size-select");
-        if (!select) return true;
+    // 1. CORE CART LOGIC
+    let cart = [];
 
-        if (select.value === "Custom") {
-            var sizeName = prompt("Enter Custom Size Name (e.g. '1 Litre'):");
-            if (!sizeName) return false;
-            var price = prompt("Enter Price for " + sizeName + ":");
-            if (price == null || price <= 0) return false;
-
-            form.querySelector(".custom-name-input").value = sizeName;
-            form.querySelector(".custom-price-input").value = price;
-            return true;
+    function addToCart(id, name, price) {
+        let existing = cart.find(item => item.name === name); // Group by Name
+        if (existing) {
+            existing.qty++;
+        } else {
+            cart.push({ id: id, name: name, price: price, qty: 1 });
         }
-        return true;
+        updateCartUI();
     }
 
-    // --- UPDATED MIX LOGIC ---
-    function openMixModal(baseFlavor, priceSm, priceLg) {
+    // SPECIAL HELPER FOR BEVERAGES (Handles 250ml vs 500ml logic)
+    function addToCartWithQty(id, name, price) {
+        let qtyInput = document.getElementById('qty-' + id);
+        let qty = parseInt(qtyInput.value) || 1;
+
+        // Add item multiple times based on quantity
+        let existing = cart.find(item => item.name === name);
+        if (existing) {
+            existing.qty += qty;
+        } else {
+            cart.push({ id: id, name: name, price: price, qty: qty });
+        }
+        updateCartUI();
+        qtyInput.value = 1; // Reset input
+    }
+
+    // UPDATED BEVERAGE FUNCTION (Handles Custom)
+    // UPDATED BEVERAGE FUNCTION
+    function addBeverageToCart(id, name, priceSm, priceLg) {
+        let sizeSelect = document.getElementById("size-" + id);
+        let size = sizeSelect.value;
+        let qtyInput = document.getElementById("qty-bev-" + id);
+        let qty = parseInt(qtyInput.value) || 1;
+
+        // Custom Logic
+        if (size === "Custom") {
+            let customName = prompt("Size Name:");
+            if (!customName) return;
+            let customPrice = prompt("Price:");
+            if (!customPrice) return;
+
+            // Add Custom Item
+            addToCartWithQtyValue(id, name + " (" + customName + ")", parseFloat(customPrice), qty);
+            return;
+        }
+
+        let finalPrice = (size === "250ml") ? priceSm : priceLg;
+        let finalName = name + " (" + size + ")";
+
+        // Helper function to push to cart
+        addToCartWithQtyValue(id, finalName, finalPrice, qty);
+
+        // Reset Qty
+        qtyInput.value = 1;
+    }
+
+    function updateCartUI() {
+        let tbody = document.getElementById("cartItems");
+        let totalSpan = document.getElementById("cartTotal");
+
+        tbody.innerHTML = "";
+        let total = 0;
+
+        cart.forEach((item, index) => {
+            let itemTotal = item.price * item.qty;
+            total += itemTotal;
+            tbody.innerHTML += `
+                <tr>
+                    <td>${item.name}</td>
+                    <td>${item.qty}</td>
+                    <td>${itemTotal}</td>
+                    <td><button onclick="removeFromCart(${index})" class="btn btn-danger btn-sm p-0 px-1">×</button></td>
+                </tr>
+            `;
+        });
+        totalSpan.innerText = total;
+    }
+
+    function removeFromCart(index) {
+        cart.splice(index, 1);
+        updateCartUI();
+    }
+
+    // 2. MIX LOGIC (Connects Modal to Cart)
+    function openMixModal(baseName, pSm, pLg) {
         document.getElementById("mixModal").style.display = "block";
-
-        // Set Base Info
-        document.getElementById("modalBaseFlavor").value = baseFlavor;
-        document.getElementById("basePriceSmall").value = priceSm;
-        document.getElementById("basePriceLarge").value = priceLg;
-
-        // Reset Fields
-        document.getElementById("modalFlavor2").value = "";
-        document.getElementById("modalFlavor3").value = "";
-        document.getElementById("modalSize").value = "250ml";
-
+        document.getElementById("modalBaseFlavor").value = baseName;
+        document.getElementById("basePriceSmall").value = pSm;
+        document.getElementById("basePriceLarge").value = pLg;
         updateModalPrice();
-        updateModalName();
     }
 
     function closeMixModal() {
@@ -207,29 +288,113 @@
     }
 
     function updateModalPrice() {
-        var size = document.getElementById("modalSize").value;
-        var pSmall = document.getElementById("basePriceSmall").value;
-        var pLarge = document.getElementById("basePriceLarge").value;
-
-        // Auto-set the price field
-        if (size === "250ml") {
-            document.getElementById("modalAmount").value = pSmall;
-        } else {
-            document.getElementById("modalAmount").value = pLarge;
-        }
+        let size = document.getElementById("modalSize").value;
+        let pSm = document.getElementById("basePriceSmall").value;
+        let pLg = document.getElementById("basePriceLarge").value;
+        document.getElementById("modalAmount").value = (size === "250ml" ? pSm : pLg);
     }
 
-    function updateModalName() {
-        var base = document.getElementById("modalBaseFlavor").value;
-        var f2 = document.getElementById("modalFlavor2").value;
-        var f3 = document.getElementById("modalFlavor3").value;
-        var size = document.getElementById("modalSize").value;
+    // UPDATED MIX FUNCTION
+    function addMixToCart() {
+        let base = document.getElementById("modalBaseFlavor").value;
+        let mixin = document.getElementById("modalFlavor2").value;
+        let size = document.getElementById("modalSize").value;
+        let price = parseFloat(document.getElementById("modalAmount").value);
+        let qty = parseInt(document.getElementById("modalQty").value) || 1; // Read Qty
 
-        var mix = base;
-        if (f2) mix += " + " + f2;
-        if (f3) mix += " + " + f3;
+        let fullName = "Mix: " + base;
+        if(mixin) fullName += " + " + mixin;
+        fullName += " (" + size + ")";
 
-        document.getElementById("finalMixName").value = mix + " (" + size + ")";
+        addToCartWithQtyValue(0, fullName, price, qty);
+        closeMixModal();
+    }
+    // SHARED HELPER FUNCTION
+    function addToCartWithQtyValue(id, name, price, qtyToAdd) {
+        let existing = cart.find(item => item.name === name);
+        if (existing) {
+            existing.qty += qtyToAdd;
+        } else {
+            cart.push({ id: id, name: name, price: price, qty: qtyToAdd });
+        }
+        updateCartUI();
+    }
+
+    // 3. PAYMENT LOGIC (Sends to Java)
+    async function processPayment() {
+        if (cart.length === 0) { alert("Cart is empty"); return; }
+
+        let payBtn = document.getElementById("payButton");
+        let method = document.getElementById("paymentMethod").value;
+        let phone = document.getElementById("phoneNumber").value;
+        let total = parseFloat(document.getElementById("cartTotal").innerText);
+
+        if (method === "MPESA") {
+            if (!phone) { alert("Enter Phone Number"); return; }
+
+            // STEP 1: SEND PIN PROMPT
+            payBtn.innerText = "Sending M-Pesa Request...";
+            payBtn.disabled = true;
+
+            try {
+                let pushRes = await fetch("/api/sales/stk-push", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ phoneNumber: phone, amount: total })
+                });
+
+                if (pushRes.ok) {
+                    // STEP 2: MANUAL CONFIRMATION
+                    let userConfirmed = confirm("M-Pesa Request Sent! \n\n1. Check your phone.\n2. Enter PIN.\n3. Click OK here once you receive the M-Pesa SMS.");
+
+                    if (!userConfirmed) {
+                        payBtn.innerText = "COMPLETE SALE";
+                        payBtn.disabled = false;
+                        return; // Stop if they cancel
+                    }
+                } else {
+                    alert("M-Pesa Connection Failed.");
+                    payBtn.innerText = "COMPLETE SALE";
+                    payBtn.disabled = false;
+                    return;
+                }
+            } catch (e) {
+                console.error(e);
+                alert("Network Error during M-Pesa");
+                return;
+            }
+        }
+
+        // STEP 3: SAVE THE SALE (Happens for Cash OR after M-Pesa Confirm)
+        payBtn.innerText = "Saving Sale...";
+
+        try {
+            let saveRes = await fetch("/api/sales/save", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    paymentMethod: method,
+                    phoneNumber: phone,
+                    amount: total,
+                    items: cart
+                })
+            });
+
+            if (saveRes.ok) {
+                alert("SALE COMPLETE!");
+                cart = [];
+                updateCartUI();
+            } else {
+                let err = await saveRes.json();
+                alert("Error Saving: " + err.error);
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Error saving sale.");
+        } finally {
+            payBtn.innerText = "COMPLETE SALE";
+            payBtn.disabled = false;
+        }
     }
 </script>
 </body>

@@ -18,6 +18,7 @@ public class Sale {
     private LocalDateTime saleDateTime;
     private int quantity;        // e.g., 3 cups
     private String paymentMethod; // "Mpesa" or "Cash"
+    private String phoneNumber;
 
     // --- Constructor ---
     public Sale() {
@@ -42,4 +43,11 @@ public class Sale {
 
     public String getPaymentMethod() { return paymentMethod; }
     public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
 }

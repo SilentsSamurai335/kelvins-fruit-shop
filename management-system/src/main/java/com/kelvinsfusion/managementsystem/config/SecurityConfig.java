@@ -18,16 +18,21 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .authorizeHttpRequests((requests) -> requests
-                        .requestMatchers("/login", "/css/**", "/js/**", "/images/**").permitAll()
+                // 1. DISABLE CSRF (Fixes the "Forbidden" error)
+                .csrf(csrf -> csrf.disable())
+
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**").permitAll()
+                        // 2. ALLOW API ACCESS
+                        .requestMatchers("/api/**").permitAll()
                         .anyRequest().authenticated()
                 )
-                .formLogin((form) -> form
+                .formLogin(login -> login
                         .loginPage("/login")
-                        .defaultSuccessUrl("/", true)
+                        .defaultSuccessUrl("/products", true)
                         .permitAll()
                 )
-                .logout((logout) -> logout.logoutSuccessUrl("/login?logout").permitAll());
+                .logout(logout -> logout.permitAll());
 
         return http.build();
     }

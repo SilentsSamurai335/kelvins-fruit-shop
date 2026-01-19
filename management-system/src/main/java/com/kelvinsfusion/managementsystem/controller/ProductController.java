@@ -204,11 +204,12 @@ public class ProductController {
 
     // --- SALES HISTORY ---
     // --- SALES HISTORY ---
-    @GetMapping("/sales")
+    @GetMapping("/sales") // or "/sales-history" depending on your setup
     public String showSales(@RequestParam(value = "period", required = false) String period,
                             @RequestParam(value = "month", required = false) Integer month,
                             @RequestParam(value = "year", required = false) Integer year,
-                            @RequestParam(value = "date", required = false) java.time.LocalDate specificDate, // NEW PARAMETER
+                            @RequestParam(value = "date", required = false) java.time.LocalDate specificDate,
+                            @RequestParam(value = "paymentMethod", required = false, defaultValue = "ALL") String paymentMethod, // NEW PARAM
                             Model model) {
 
         LocalDateTime now = LocalDateTime.now();
@@ -216,20 +217,16 @@ public class ProductController {
         LocalDateTime end = now;
         String title = "All Time Sales";
 
-        // 1. SPECIFIC DATE (Calendar Picker)
+        // 1. DATE LOGIC (Your existing logic)
         if (specificDate != null) {
             start = specificDate.atStartOfDay();
             end = specificDate.atTime(23, 59, 59);
             title = "Sales for " + specificDate;
-        }
-        // 2. SPECIFIC MONTH
-        else if (month != null && year != null) {
+        } else if (month != null && year != null) {
             start = LocalDateTime.of(year, month, 1, 0, 0);
             end = start.plusMonths(1).minusSeconds(1);
             title = Month.of(month).name() + " " + year + " Sales";
-        }
-        // 3. PRESETS
-        else if ("today".equals(period)) {
+        } else if ("today".equals(period)) {
             start = now.toLocalDate().atStartOfDay();
             title = "Today's Sales";
         } else if ("week".equals(period)) {
@@ -240,19 +237,31 @@ public class ProductController {
             title = "This Month's Sales";
         }
 
-        List<Sale> sales = saleRepository.findBySaleDateTimeBetween(start, end);
+        // 2. FETCH DATA BASED ON PAYMENT METHOD
+        List<Sale> sales;
+        if (paymentMethod.equals("ALL")) {
+            // Show everything for that date range
+            sales = saleRepository.findBySaleDateTimeBetween(start, end);
+        } else {
+            // Filter by Date AND Payment (e.g., only MPESA for Today)
+            sales = saleRepository.findBySaleDateTimeBetweenAndPaymentMethod(start, end, paymentMethod);
+            title += " (" + paymentMethod + ")";
+        }
+
         double totalRevenue = sales.stream().mapToDouble(Sale::getTotalAmount).sum();
 
+        // 3. ADD ATTRIBUTES
         model.addAttribute("listSales", sales);
         model.addAttribute("totalRevenue", totalRevenue);
         model.addAttribute("periodTitle", title);
 
-        // Pass values back to keep inputs filled
+        // Keep inputs filled
         model.addAttribute("selectedDate", specificDate);
         model.addAttribute("selectedMonth", (month != null) ? month : now.getMonthValue());
         model.addAttribute("selectedYear", (year != null) ? year : now.getYear());
+        model.addAttribute("selectedPayment", paymentMethod); // To keep dropdown selected
 
-        return "sales";
+        return "sales"; // Make sure your HTML file is named 'sales.html' (or 'sales-history.html')
     }
 
     // --- EXPENSES ---
