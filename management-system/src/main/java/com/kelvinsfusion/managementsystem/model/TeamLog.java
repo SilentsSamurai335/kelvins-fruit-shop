@@ -15,7 +15,7 @@ public class TeamLog {
     private LocalDateTime timestamp;
     private String recipient;
     private String subject;// NEW: Stores "admin" or "john"
-
+    private boolean archived = false;
 
     public TeamLog() {
         this.timestamp = LocalDateTime.now();
@@ -36,4 +36,8 @@ public class TeamLog {
     public void setRecipient(String recipient) { this.recipient = recipient; }
     public String getSubject() { return subject; }
     public void setSubject(String subject) { this.subject = subject; }
+
+    public boolean isArchived() { return archived; }
+    public void setArchived(boolean archived) { this.archived = archived;
+    }
 }

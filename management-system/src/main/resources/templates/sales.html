@@ -31,7 +31,7 @@
 
 <div class="d-flex" id="wrapper">
 
-    <div class="no-print">
+    <div class="no-print" style="display: contents;">
         <div th:replace="~{fragments :: sidebar(activePage='sales')}"></div>
     </div>
 
@@ -67,6 +67,7 @@
                                 <a href="/sales?period=today" class="btn btn-sm btn-outline-secondary">Today</a>
                                 <a href="/sales?period=week" class="btn btn-sm btn-outline-secondary">Week</a>
                                 <a href="/sales?period=month" class="btn btn-sm btn-outline-secondary">Month</a>
+                                <a href="/sales?period=all" class="btn btn-sm btn-outline-dark">All</a>
                             </div>
                         </div>
 
@@ -75,6 +76,18 @@
                             <div class="input-group input-group-sm">
                                 <input type="date" name="date" class="form-control" th:value="${selectedDate}">
                                 <button type="submit" class="btn btn-dark">Go</button>
+                            </div>
+                        </div>
+
+                        <div class="col-auto">
+                            <label class="small fw-bold text-muted d-block">Payment Type</label>
+                            <div class="d-flex gap-1">
+                                <select name="paymentMethod" class="form-select form-select-sm" style="width: 130px;">
+                                    <option value="ALL" th:selected="${selectedPayment == 'ALL'}">All Types</option>
+                                    <option value="CASH" th:selected="${selectedPayment == 'CASH'}">Cash Only</option>
+                                    <option value="MPESA" th:selected="${selectedPayment == 'MPESA'}">M-Pesa Only</option>
+                                </select>
+                                <button type="submit" class="btn btn-sm btn-dark">Filter</button>
                             </div>
                         </div>
 

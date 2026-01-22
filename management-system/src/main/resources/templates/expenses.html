@@ -11,37 +11,43 @@
     <div class="main-content">
         <div class="container-fluid">
             <div th:replace="~{fragments :: topbar}"></div>
+
             <div class="card mb-4 border-0 shadow-sm">
                 <div class="card-body">
                     <form action="/expenses" method="get" class="row g-2 align-items-end">
 
                         <div class="col-auto">
-                            <label class="small text-muted fw-bold">Quick Time</label><br>
-                            <div class="btn-group">
-                                <a href="/expenses?period=today" class="btn btn-sm btn-outline-secondary">Today</a>
-                                <a href="/expenses?period=week" class="btn btn-sm btn-outline-secondary">Week</a> <a href="/expenses?period=month" class="btn btn-sm btn-outline-secondary">Month</a>
-                                <a href="/expenses?period=all" class="btn btn-sm btn-outline-secondary">All</a>
+                            <label class="small text-muted fw-bold">Time Period</label><br>
+                            <div class="d-flex gap-2">
+                                <div class="btn-group">
+                                    <a href="/expenses?period=today" class="btn btn-sm btn-outline-secondary">Today</a>
+                                    <a href="/expenses?period=week" class="btn btn-sm btn-outline-secondary">Week</a>
+                                    <a href="/expenses?period=month" class="btn btn-sm btn-outline-secondary">Month</a>
+                                    <a href="/expenses?period=all" class="btn btn-sm btn-outline-dark">All</a>
+                                </div>
+                                <input type="date" name="date" class="form-control form-control-sm" style="width: 130px;"
+                                       th:value="${selectedDate}" title="Pick a specific date">
                             </div>
                         </div>
 
                         <div class="col-auto">
-                            <label class="small text-muted fw-bold">Specific Month</label>
+                            <label class="small text-muted fw-bold">Archive</label>
                             <div class="input-group input-group-sm">
-                                <select name="month" class="form-select" style="width: 110px;">
-                                    <option value="1" th:selected="${selectedMonth == 1}">January</option>
-                                    <option value="2" th:selected="${selectedMonth == 2}">February</option>
-                                    <option value="3" th:selected="${selectedMonth == 3}">March</option>
-                                    <option value="4" th:selected="${selectedMonth == 4}">April</option>
+                                <select name="month" class="form-select" style="width: 90px;">
+                                    <option value="1" th:selected="${selectedMonth == 1}">Jan</option>
+                                    <option value="2" th:selected="${selectedMonth == 2}">Feb</option>
+                                    <option value="3" th:selected="${selectedMonth == 3}">Mar</option>
+                                    <option value="4" th:selected="${selectedMonth == 4}">Apr</option>
                                     <option value="5" th:selected="${selectedMonth == 5}">May</option>
-                                    <option value="6" th:selected="${selectedMonth == 6}">June</option>
-                                    <option value="7" th:selected="${selectedMonth == 7}">July</option>
-                                    <option value="8" th:selected="${selectedMonth == 8}">August</option>
-                                    <option value="9" th:selected="${selectedMonth == 9}">September</option>
-                                    <option value="10" th:selected="${selectedMonth == 10}">October</option>
-                                    <option value="11" th:selected="${selectedMonth == 11}">November</option>
-                                    <option value="12" th:selected="${selectedMonth == 12}">December</option>
+                                    <option value="6" th:selected="${selectedMonth == 6}">Jun</option>
+                                    <option value="7" th:selected="${selectedMonth == 7}">Jul</option>
+                                    <option value="8" th:selected="${selectedMonth == 8}">Aug</option>
+                                    <option value="9" th:selected="${selectedMonth == 9}">Sep</option>
+                                    <option value="10" th:selected="${selectedMonth == 10}">Oct</option>
+                                    <option value="11" th:selected="${selectedMonth == 11}">Nov</option>
+                                    <option value="12" th:selected="${selectedMonth == 12}">Dec</option>
                                 </select>
-                                <input type="number" name="year" class="form-control" style="width: 90px;" th:value="${selectedYear}">
+                                <input type="number" name="year" class="form-control" style="width: 70px;" th:value="${selectedYear}">
                             </div>
                         </div>
 
@@ -49,30 +55,50 @@
                             <label class="small text-muted fw-bold">Filter Category</label>
                             <select name="category" class="form-select form-select-sm">
                                 <option value="ALL">Show Everything</option>
-                                <option class="fw-bold" value="GROUP_UTILITIES">💡 ALL UTILITIES</option>
-                                <option value="Rent">&nbsp;&nbsp; Rent</option>
+
+                                <optgroup label="Ingredients">
+                                    <option value="Sugar" th:selected="${selectedCategory == 'Sugar'}">Sugar</option>
+                                    <option value="Juice Ingredients" th:selected="${selectedCategory == 'Juice Ingredients'}">Juice Ingredients</option>
+                                    <option value="Uji Ingredients" th:selected="${selectedCategory == 'Uji Ingredients'}">Uji Ingredients</option>
+                                    <option value="Snacks" th:selected="${selectedCategory == 'Snacks'}">Snacks</option>
+                                    <option value="Spices" th:selected="${selectedCategory == 'Spices'}">Spices</option>
+                                    <option value="Packaging" th:selected="${selectedCategory == 'Packaging'}">Packaging</option>
+                                </optgroup>
+
+                                <optgroup label="Utilities">
+                                    <option value="Rent" th:selected="${selectedCategory == 'Rent'}">Rent</option>
+                                    <option value="Gas" th:selected="${selectedCategory == 'Gas'}">Gas</option>
+                                    <option value="Tap Water" th:selected="${selectedCategory == 'Tap Water'}">Tap Water</option>
+                                    <option value="Token" th:selected="${selectedCategory == 'Token'}">Electricity Token</option>
+                                    <option value="Garbage" th:selected="${selectedCategory == 'Garbage'}">Garbage</option>
+                                </optgroup>
+
+                                <optgroup label="Operations">
+                                    <option value="Transport" th:selected="${selectedCategory == 'Transport'}">Transport</option>
+                                </optgroup>
                             </select>
                         </div>
+
                         <div class="col-auto">
                             <button type="submit" class="btn btn-sm btn-dark">Filter</button>
                         </div>
                     </form>
                 </div>
-                <div class="card-footer d-flex justify-content-between">
-                    <span class="text-muted" th:text="'Viewing: ' + ${periodTitle}"></span>
-                    <span class="fw-bold text-danger" th:text="'Total: KES ' + ${totalExpense}"></span>
+                <div class="card-footer d-flex justify-content-between align-items-center">
+                    <span class="text-muted small" th:text="'Viewing: ' + ${periodTitle}"></span>
+                    <span class="fw-bold text-danger fs-5" th:text="'Total: KES ' + ${totalExpense}"></span>
                 </div>
             </div>
 
             <h2 class="fw-bold mb-4">📉 Expense Tracker</h2>
 
             <div class="card mb-4 border-0 shadow-sm">
-                <div class="card-header">
-                    <h5 class="card-title text-muted mb-0">Record New Purchase</h5>
+                <div class="card-header bg-light">
+                    <h5 class="card-title text-dark mb-0 fw-bold">Record New Purchase</h5>
                 </div>
                 <div class="card-body">
 
-                    <form th:action="@{/save-expense}" th:object="${newExpense}" method="post">
+                    <form th:action="@{/save-expense}" th:object="${newExpense}" method="post" onsubmit="preFillSugarName()">
 
                         <div class="mb-3">
                             <label class="fw-bold">Category</label>
@@ -80,7 +106,8 @@
                                 <option value="" disabled selected>Select Category...</option>
 
                                 <optgroup label="Ingredients">
-                                    <option value="Sugar">Sugar</option> <option value="Juice Ingredients">Juice Ingredients (Fruit)</option>
+                                    <option value="Sugar">Sugar</option>
+                                    <option value="Juice Ingredients">Juice Ingredients (Fruit)</option>
                                     <option value="Uji Ingredients">Uji Ingredients</option>
                                     <option value="Snacks">Snacks</option>
                                     <option value="Spices">Spices</option>
@@ -90,7 +117,9 @@
                                 <optgroup label="Utilities">
                                     <option value="Rent">Rent</option>
                                     <option value="Gas">Gas</option>
-                                    <option value="Tap Water">Tap Water</option> <option value="Token">Electricity Token</option> <option value="Garbage">Garbage</option>
+                                    <option value="Tap Water">Tap Water</option>
+                                    <option value="Token">Electricity Token</option>
+                                    <option value="Garbage">Garbage</option>
                                 </optgroup>
 
                                 <optgroup label="Operations">
@@ -100,12 +129,12 @@
                         </div>
 
                         <div class="mb-3" id="nameField">
-                            <label>Item Name</label>
-                            <input type="text" th:field="*{itemName}" class="form-control" placeholder="e.g. Rent Payment">
+                            <label>Item Name / Details</label>
+                            <input type="text" th:field="*{itemName}" id="itemNameInput" class="form-control" placeholder="e.g. Oranges, Rent Payment">
                         </div>
 
                         <div class="mb-3" id="quantityField" style="display: none;">
-                            <label>Quantity</label>
+                            <label>Quantity / Weight</label>
                             <input type="text" th:field="*{quantity}" class="form-control" placeholder="e.g. 5 kgs">
                         </div>
 
@@ -147,7 +176,7 @@
 
             <div class="card shadow-sm border-0">
                 <div class="card-body p-0">
-                    <table class="table table-hover mb-0">
+                    <table class="table table-hover mb-0 align-middle">
                         <thead class="table-light">
                         <tr>
                             <th>Date</th>
@@ -159,18 +188,28 @@
                         <tbody>
                         <tr th:each="expense : ${listExpenses}">
                             <td th:text="${expense.date}"></td>
+
                             <td>
-                                <span class="badge bg-secondary" th:text="${expense.category}">Transport</span>
+                                <span class="badge bg-secondary" th:text="${expense.category}">Category</span>
                             </td>
+
                             <td>
-                                        <span th:if="${expense.category == 'Transport'}">
-                                            <span th:text="${expense.trips} + ' Trips: ' + ${expense.startLocation} + ' ➝ ' + ${expense.endLocation}"></span>
-                                            <br><small class="text-muted" th:text="${expense.description}"></small>
-                                        </span>
-                                <span th:unless="${expense.category == 'Transport'}">
-                                            <span th:text="${expense.itemName}"></span>
-                                            <span th:if="${expense.quantity != null}" th:text="'(' + ${expense.quantity} + ')'"></span>
-                                        </span>
+                                <span th:if="${expense.category == 'Transport'}">
+                                    <strong th:text="${expense.trips} + ' Trips'"></strong>:
+                                    <span th:text="${expense.startLocation} + ' ➝ ' + ${expense.endLocation}"></span>
+                                    <div class="small text-muted" th:text="${expense.description}"></div>
+                                </span>
+
+                                <span th:if="${expense.category == 'Sugar'}">
+                                    <span class="fw-bold">Sugar</span>
+                                    <span th:if="${expense.quantity != null}" th:text="'(' + ${expense.quantity} + ')'"></span>
+                                </span>
+
+                                <span th:if="${expense.category != 'Transport' and expense.category != 'Sugar'}">
+                                    <span th:text="${expense.itemName}" class="fw-bold"></span>
+                                    <span th:if="${expense.quantity != null}" class="text-muted" th:text="' - ' + ${expense.quantity}"></span>
+                                    <span th:if="${expense.units != null}" class="text-muted" th:text="' - ' + ${expense.units} + ' Units'"></span>
+                                </span>
                             </td>
                             <td th:text="${expense.amount}" class="text-danger fw-bold"></td>
                         </tr>
@@ -201,28 +240,37 @@
 
         // 2. SHOW BASED ON CATEGORY
         if (category === "Transport") {
-            // Show Transport Fields
             transDiv.style.display = "block";
         }
+        else if (category === "Sugar") {
+            // SUGAR: Show Quantity ONLY (Name is hidden)
+            qtyDiv.style.display = "block";
+        }
         else if (category === "Tap Water" || category === "Token") {
-            // Show Units + Name
             nameDiv.style.display = "block";
             unitsDiv.style.display = "block";
         }
-        else if (category === "Rent" || category === "Gas" || category === "Garbage" ||
-            category === "Lunch" || category === "Honorarium" || category === "Maintenance") {
-            // Show Only Name
+        else if (["Rent", "Gas", "Garbage", "Lunch", "Honorarium", "Maintenance"].includes(category)) {
             nameDiv.style.display = "block";
         }
         else {
-            // DEFAULT: Ingredients (Juice, Uji, Snacks, Spices, SUGAR)
-            // Show Name + Quantity
+            // INGREDIENTS (Juice, Uji, Snacks, etc)
             nameDiv.style.display = "block";
             qtyDiv.style.display = "block";
         }
     }
 
-    // Run once on load to set correct state
+    // AUTO-FILL NAME FOR SUGAR (So backend doesn't receive null)
+    function preFillSugarName() {
+        var category = document.getElementById("categorySelect").value;
+        var nameInput = document.getElementById("itemNameInput");
+
+        if (category === "Sugar" && nameInput.value.trim() === "") {
+            nameInput.value = "Sugar"; // Sets the hidden name field
+        }
+    }
+
+    // Run once on load
     document.addEventListener("DOMContentLoaded", function() {
         toggleFields();
     });

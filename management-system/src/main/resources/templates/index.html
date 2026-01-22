@@ -1,12 +1,10 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.w3.org/1999/xhtml">
 <head>
-    <title>Home - Fruity Fusion</title>
+    <title>Dashboard - Fruity Fusion</title>
     <th:block th:replace="~{fragments :: styles}"></th:block>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-
 <div class="d-flex" id="wrapper">
     <div th:replace="~{fragments :: sidebar(activePage='home')}"></div>
 
@@ -16,43 +14,41 @@
 
             <div class="row mb-4">
                 <div class="col-12">
-                    <h2 class="fw-bold">📊 Executive Dashboard</h2>
-                    <p class="text-muted">Welcome back, <span sec:authentication="name" class="fw-bold text-dark">User</span>!</p>
+                    <h2 class="fw-bold">👋 Welcome Back, <span sec:authentication="name">User</span>!</h2>
+                    <p class="text-muted">Here is what's happening at Fruity Fusion today.</p>
                 </div>
             </div>
 
-            <div class="row" sec:authorize="hasRole('ADMIN')">
-                <div class="col-md-8 mb-4">
-                    <div class="card shadow-sm border-0 h-100">
-                        <div class="card-header bg-white">
-                            <h5 class="fw-bold text-success mb-0">📈 Revenue Trend</h5>
-                        </div>
-                        <div class="card-body">
-                            <canvas id="trendChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 mb-4">
-                    <div class="card shadow-sm border-0 h-100">
-                        <div class="card-header bg-white">
-                            <h5 class="fw-bold text-warning mb-0">🍕 Product Popularity</h5>
-                        </div>
-                        <div class="card-body">
-                            <canvas id="productChart"></canvas>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card shadow-sm border-0 h-100 bg-warning text-dark">
+                        <div class="card-body text-center d-flex flex-column justify-content-center">
+                            <i class="fas fa-cash-register fa-3x mb-3"></i>
+                            <h5 class="fw-bold">Ready to Sell?</h5>
+                            <a href="/products" class="btn btn-dark w-100 mt-2">Go to POS</a>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="row" sec:authorize="!hasRole('ADMIN')">
-                <div class="col-12 mt-5">
-                    <div class="card shadow-sm border-0 text-center p-5">
-                        <div class="card-body">
-                            <h1 class="display-4 mb-3">👋 Ready to Sell?</h1>
-                            <p class="lead text-muted mb-4">Go to the Inventory page to start serving customers.</p>
-                            <a href="/products" class="btn btn-primary btn-lg px-5 fw-bold">
-                                <i class="fas fa-cash-register me-2"></i> Open POS System
-                            </a>
+                <div class="col-md-4" sec:authorize="hasRole('ADMIN')">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-body text-center d-flex flex-column justify-content-center">
+                            <i class="fas fa-chart-line fa-3x mb-3 text-primary"></i>
+                            <h5 class="fw-bold">View Financials</h5>
+                            <p class="small text-muted">Check reports & trends</p>
+                            <a href="/analytics" class="btn btn-outline-primary w-100">Open Report</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-body text-center d-flex flex-column justify-content-center">
+                            <i class="fas fa-users fa-3x mb-3 text-success"></i>
+                            <h5 class="fw-bold">Team Hub</h5>
+                            <div th:if="${hasNewMessage}" class="badge bg-danger mb-2">New Messages!</div>
+                            <div th:unless="${hasNewMessage}" class="text-muted small mb-2">All caught up</div>
+                            <a href="/team" class="btn btn-outline-success w-100">Go to Chat</a>
                         </div>
                     </div>
                 </div>
@@ -61,48 +57,5 @@
         </div>
     </div>
 </div>
-
-<script th:inline="javascript">
-    var trendLabels = [[${trendDates}]];
-    var trendData = [[${trendAmounts}]];
-    const ctxTrend = document.getElementById('trendChart');
-    if (ctxTrend) {
-        new Chart(ctxTrend, {
-            type: 'line',
-            data: {
-                labels: trendLabels,
-                datasets: [{
-                    label: 'Daily Sales (KES)',
-                    data: trendData,
-                    borderColor: '#198754',
-                    backgroundColor: 'rgba(25, 135, 84, 0.1)',
-                    borderWidth: 3,
-                    pointBackgroundColor: '#FFC107',
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: { scales: { y: { beginAtZero: true } } }
-        });
-    }
-
-    var productLabels = [[${productLabels}]];
-    var productData = [[${productData}]];
-    const ctxProduct = document.getElementById('productChart');
-    if (ctxProduct) {
-        new Chart(ctxProduct, {
-            type: 'doughnut',
-            data: {
-                labels: productLabels,
-                datasets: [{
-                    data: productData,
-                    backgroundColor: ['#FFC107', '#DC3545', '#0D6EFD', '#198754', '#6610F2', '#FD7E14'],
-                    borderWidth: 2
-                }]
-            },
-            options: { plugins: { legend: { position: 'bottom' } } }
-        });
-    }
-</script>
 </body>
 </html>

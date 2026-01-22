@@ -402,14 +402,14 @@
         <h5 class="fw-bold mt-2 mb-0 text-truncate" style="color: var(--ff-yellow);">Fruity Fusion</h5>
 
         <div id="liveClockWidget" class="mt-2 text-center small text-muted">
-            <div id="liveTime" ...>--:--</div>
-            <div id="liveDate" ...>---</div>
+            <div id="liveTime">--:--</div>
+            <div id="liveDate">---</div>
         </div>
     </div>
 
-
     <ul class="nav nav-pills flex-column mb-auto mt-3">
 
+        <li class="nav-item">
             <a href="/" class="nav-link" th:classappend="${activePage == 'home'} ? 'active' : ''">
                 <i class="fas fa-home" title="Dashboard"></i> <span>Dashboard</span>
             </a>
@@ -434,18 +434,30 @@
         </li>
 
         <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+            <a href="/analytics" class="nav-link" th:classappend="${activePage == 'analytics'} ? 'active' : ''">
+                <i class="fas fa-chart-pie" title="Financial Review"></i> <span>Financial Review</span>
+            </a>
+        </li>
+
+        <li class="nav-item" sec:authorize="hasRole('ADMIN')">
             <a href="/income-statement" class="nav-link" th:classappend="${activePage == 'income'} ? 'active' : ''">
                 <i class="fas fa-file-invoice-dollar" title="P&L Report"></i> <span>Income Statement</span>
             </a>
         </li>
 
         <li class="nav-item">
-            <a href="/team" class="nav-link" th:classappend="${activePage == 'team'} ? 'active' : ''">
-                <i class="fas fa-users" title="Team Hub"></i>
+            <a href="/team" class="nav-link" th:classappend="${activePage == 'team'} ? 'active' : ''" onclick="markMessagesAsRead()">
+                <div class="d-flex align-items-center w-100 justify-content-between">
+                    <div>
+                        <i class="fas fa-users" title="Team Hub"></i>
+                        <span class="ms-2">Team Hub</span>
+                    </div>
 
-                <div class="d-flex justify-content-between align-items-center w-100 link-text-container ms-2">
-                    <span>Team Hub</span>
-                    <span th:if="${hasNewMessage}" class="badge bg-danger rounded-circle p-1" style="width: 10px; height: 10px;"></span>
+                    <span id="navRedDot"
+                          class="badge bg-danger rounded-circle p-1"
+                          style="width: 10px; height: 10px; display: none;">
+                <span class="visually-hidden">New alerts</span>
+            </span>
                 </div>
             </a>
         </li>
@@ -458,7 +470,6 @@
     </ul>
 
     <div class="p-3 mt-auto">
-
         <div class="d-flex align-items-center gap-3 mb-3 px-2 py-2 rounded profile-container"
              style="background-color: rgba(0,0,0,0.05);">
 
@@ -523,6 +534,54 @@
         </div>
     </div>
 </div>
+
+<script>
+    // --- RED DOT NOTIFICATION LOGIC ---
+
+    // 1. Run immediately, then every 4 seconds
+    checkNotifications();
+    setInterval(checkNotifications, 4000);
+
+    function checkNotifications() {
+        // Stop if we are on the Team Hub page (no need to alert)
+        if (window.location.pathname.includes('/team')) {
+            document.getElementById('navRedDot').style.display = 'none';
+            return;
+        }
+
+        fetch('/api/check-latest-message')
+            .then(response => response.json())
+            .then(data => {
+                // Convert to Numbers to be safe
+                let serverId = Number(data.id) || 0;
+                let localId = Number(localStorage.getItem('lastReadMessageId')) || 0;
+
+                // Debugging (Press F12 to see this)
+                // console.log("Server ID:", serverId, "Local ID:", localId);
+
+                if (serverId > localId) {
+                    // New Message detected!
+                    document.getElementById('navRedDot').style.display = 'inline-block';
+                } else {
+                    document.getElementById('navRedDot').style.display = 'none';
+                }
+            })
+            .catch(err => console.error("Red Dot Error:", err));
+    }
+
+    // 2. Click Handler (Attached to the Link)
+    function markMessagesAsRead() {
+        // Hide dot instantly
+        document.getElementById('navRedDot').style.display = 'none';
+
+        // Fetch latest ID and save it as "Read"
+        fetch('/api/check-latest-message')
+            .then(res => res.json())
+            .then(data => {
+                localStorage.setItem('lastReadMessageId', data.id);
+            });
+    }
+</script>
 
 </body>
 </html>

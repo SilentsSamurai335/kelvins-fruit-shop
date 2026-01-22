@@ -95,9 +95,10 @@
                         <div class="card-header bg-warning text-dark fw-bold">
                             🛒 Current Order
                         </div>
+
                         <div class="card-body p-0">
                             <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
-                                <table class="table table-sm table-striped mb-0">
+                                <table class="table table-sm table-hover mb-0 align-middle">
                                     <thead>
                                     <tr>
                                         <th>Item</th>
@@ -112,15 +113,10 @@
                             </div>
                         </div>
 
-                        <div class="card-footer bg-white">
+                        <div class="card-footer" style="border-top: 1px solid var(--border-color);">
                             <div class="d-flex justify-content-between fw-bold fs-5 mb-3">
                                 <span>Total:</span>
                                 <span>KES <span id="cartTotal">0</span></span>
-                            </div>
-
-                            <div class="mb-2">
-                                <label class="small text-muted">Phone (For M-Pesa)</label>
-                                <input type="text" id="phoneNumber" class="form-control" placeholder="2547..." value="254">
                             </div>
 
                             <div class="mb-3">
@@ -320,53 +316,16 @@
         updateCartUI();
     }
 
-    // 3. PAYMENT LOGIC (Sends to Java)
+    // 3. PAYMENT LOGIC (Simplified: No Phone, No STK)
     async function processPayment() {
         if (cart.length === 0) { alert("Cart is empty"); return; }
 
         let payBtn = document.getElementById("payButton");
         let method = document.getElementById("paymentMethod").value;
-        let phone = document.getElementById("phoneNumber").value;
         let total = parseFloat(document.getElementById("cartTotal").innerText);
 
-        if (method === "MPESA") {
-            if (!phone) { alert("Enter Phone Number"); return; }
-
-            // STEP 1: SEND PIN PROMPT
-            payBtn.innerText = "Sending M-Pesa Request...";
-            payBtn.disabled = true;
-
-            try {
-                let pushRes = await fetch("/api/sales/stk-push", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ phoneNumber: phone, amount: total })
-                });
-
-                if (pushRes.ok) {
-                    // STEP 2: MANUAL CONFIRMATION
-                    let userConfirmed = confirm("M-Pesa Request Sent! \n\n1. Check your phone.\n2. Enter PIN.\n3. Click OK here once you receive the M-Pesa SMS.");
-
-                    if (!userConfirmed) {
-                        payBtn.innerText = "COMPLETE SALE";
-                        payBtn.disabled = false;
-                        return; // Stop if they cancel
-                    }
-                } else {
-                    alert("M-Pesa Connection Failed.");
-                    payBtn.innerText = "COMPLETE SALE";
-                    payBtn.disabled = false;
-                    return;
-                }
-            } catch (e) {
-                console.error(e);
-                alert("Network Error during M-Pesa");
-                return;
-            }
-        }
-
-        // STEP 3: SAVE THE SALE (Happens for Cash OR after M-Pesa Confirm)
-        payBtn.innerText = "Saving Sale...";
+        payBtn.innerText = "Recording Sale...";
+        payBtn.disabled = true;
 
         try {
             let saveRes = await fetch("/api/sales/save", {
@@ -374,23 +333,24 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     paymentMethod: method,
-                    phoneNumber: phone,
                     amount: total,
                     items: cart
+                    // Removed phoneNumber property
                 })
             });
+
+            let result = await saveRes.json();
 
             if (saveRes.ok) {
                 alert("SALE COMPLETE!");
                 cart = [];
                 updateCartUI();
             } else {
-                let err = await saveRes.json();
-                alert("Error Saving: " + err.error);
+                alert("Error: " + (result.error || "Could not save sale"));
             }
         } catch (e) {
             console.error(e);
-            alert("Error saving sale.");
+            alert("Network Error. Check console.");
         } finally {
             payBtn.innerText = "COMPLETE SALE";
             payBtn.disabled = false;
