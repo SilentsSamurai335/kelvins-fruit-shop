@@ -80,26 +80,26 @@
                         <thead><tr><th colspan="3" class="fw-bold fs-5">Sales</th></tr></thead>
                         <tbody>
                         <tr><td colspan="3" class="fw-bold ps-4">Juice Sales</td></tr>
-                        <tr><td class="ps-5">CASH</td><td class="text-end" th:text="${#numbers.formatDecimal(juiceCash, 1, 'COMMA', 0, 'POINT')}"></td><td></td></tr>
-                        <tr><td class="ps-5">MPESA</td><td class="text-end" th:text="${#numbers.formatDecimal(juiceMpesa, 1, 'COMMA', 0, 'POINT')}"></td><td class="text-end fw-bold" th:text="${#numbers.formatDecimal(juiceCash + juiceMpesa, 1, 'COMMA', 0, 'POINT')}"></td></tr>
+                        <tr><td class="ps-5">CASH</td><td class="text-end text-success" th:text="${#numbers.formatDecimal(juiceCash, 1, 'COMMA', 0, 'POINT')}"></td><td></td></tr>
+                        <tr><td class="ps-5">MPESA</td><td class="text-end text-success" th:text="${#numbers.formatDecimal(juiceMpesa, 1, 'COMMA', 0, 'POINT')}"></td><td class="text-end fw-bold text-success" th:text="${#numbers.formatDecimal(juiceCash + juiceMpesa, 1, 'COMMA', 0, 'POINT')}"></td></tr>
 
                         <tr><td colspan="3" class="fw-bold ps-4">Uji Sales</td></tr>
-                        <tr><td class="ps-5">CASH</td><td class="text-end" th:text="${#numbers.formatDecimal(ujiCash, 1, 'COMMA', 0, 'POINT')}"></td><td></td></tr>
-                        <tr><td class="ps-5">MPESA</td><td class="text-end" th:text="${#numbers.formatDecimal(ujiMpesa, 1, 'COMMA', 0, 'POINT')}"></td><td class="text-end fw-bold" th:text="${#numbers.formatDecimal(ujiCash + ujiMpesa, 1, 'COMMA', 0, 'POINT')}"></td></tr>
+                        <tr><td class="ps-5">CASH</td><td class="text-end text-success" th:text="${#numbers.formatDecimal(ujiCash, 1, 'COMMA', 0, 'POINT')}"></td><td></td></tr>
+                        <tr><td class="ps-5">MPESA</td><td class="text-end text-success" th:text="${#numbers.formatDecimal(ujiMpesa, 1, 'COMMA', 0, 'POINT')}"></td><td class="text-end fw-bold text-success" th:text="${#numbers.formatDecimal(ujiCash + ujiMpesa, 1, 'COMMA', 0, 'POINT')}"></td></tr>
 
                         <tr><td colspan="3" class="fw-bold ps-4">Cupcakes</td></tr>
-                        <tr><td class="ps-5">Total</td><td class="text-end" th:text="${#numbers.formatDecimal(cakeCash + cakeMpesa, 1, 'COMMA', 0, 'POINT')}"></td><td></td></tr>
+                        <tr><td class="ps-5">Total</td><td class="text-end text-success" th:text="${#numbers.formatDecimal(cakeCash + cakeMpesa, 1, 'COMMA', 0, 'POINT')}"></td><td></td></tr>
 
                         <tr><td colspan="3" class="fw-bold ps-4">Cookies</td></tr>
-                        <tr><td class="ps-5">Total</td><td class="text-end" th:text="${#numbers.formatDecimal(cookCash + cookMpesa, 1, 'COMMA', 0, 'POINT')}"></td><td></td></tr>
+                        <tr><td class="ps-5">Total</td><td class="text-end text-success" th:text="${#numbers.formatDecimal(cookCash + cookMpesa, 1, 'COMMA', 0, 'POINT')}"></td><td></td></tr>
 
                         <tr><td colspan="3" class="fw-bold ps-4">Spices</td></tr>
-                        <tr><td class="ps-5">Total</td><td class="text-end" th:text="${#numbers.formatDecimal(spiceCash + spiceMpesa, 1, 'COMMA', 0, 'POINT')}"></td><td></td></tr>
+                        <tr><td class="ps-5">Total</td><td class="text-end text-success" th:text="${#numbers.formatDecimal(spiceCash + spiceMpesa, 1, 'COMMA', 0, 'POINT')}"></td><td></td></tr>
 
                         <tr class="fw-bold fs-5">
                             <td>Total Sales</td>
                             <td></td>
-                            <td class="text-end" th:text="${#numbers.formatDecimal(totalSales, 1, 'COMMA', 0, 'POINT')}"></td>
+                            <td class="text-end text-success" th:text="${#numbers.formatDecimal(totalSales, 1, 'COMMA', 0, 'POINT')}"></td>
                         </tr>
                         </tbody>
 
@@ -108,28 +108,30 @@
                         <tr><td colspan="3" class="fw-bold ps-4">Juice Ingredients</td></tr>
                         <tr th:each="exp : ${cogsJuice}">
                             <td class="ps-5" th:text="${exp.itemName} + ' (' + ${exp.quantity} + ')'"></td>
-                            <td class="text-end" th:text="${#numbers.formatDecimal(exp.amount, 1, 'COMMA', 0, 'POINT')}"></td>
+                            <td class="text-end text-danger" th:text="${#numbers.formatDecimal(exp.amount, 1, 'COMMA', 0, 'POINT')}"></td>
                             <td></td>
                         </tr>
 
                         <tr><td colspan="3" class="fw-bold ps-4">Uji Ingredients</td></tr>
                         <tr th:each="exp : ${cogsUji}">
                             <td class="ps-5" th:text="${exp.itemName}"></td>
-                            <td class="text-end" th:text="${#numbers.formatDecimal(exp.amount, 1, 'COMMA', 0, 'POINT')}"></td>
+                            <td class="text-end text-danger" th:text="${#numbers.formatDecimal(exp.amount, 1, 'COMMA', 0, 'POINT')}"></td>
                             <td></td>
                         </tr>
 
                         <tr><td colspan="3" class="fw-bold ps-4">Shared (Sugar/Spices)</td></tr>
                         <tr th:each="exp : ${cogsShared}">
                             <td class="ps-5" th:text="${exp.itemName}"></td>
-                            <td class="text-end" th:text="${#numbers.formatDecimal(exp.amount, 1, 'COMMA', 0, 'POINT')}"></td>
+                            <td class="text-end text-danger" th:text="${#numbers.formatDecimal(exp.amount, 1, 'COMMA', 0, 'POINT')}"></td>
                             <td></td>
                         </tr>
 
                         <tr class="fw-bold fs-5">
                             <td>Gross Profit</td>
                             <td></td>
-                            <td class="text-end" th:text="${#numbers.formatDecimal(grossProfit, 1, 'COMMA', 0, 'POINT')}"></td>
+                            <td class="text-end"
+                                th:classappend="${grossProfit >= 0} ? 'text-success' : 'text-danger'"
+                                th:text="${#numbers.formatDecimal(grossProfit, 1, 'COMMA', 0, 'POINT')}"></td>
                         </tr>
                         </tbody>
 
@@ -137,14 +139,14 @@
                         <tbody>
                         <tr th:each="exp : ${expOps}">
                             <td class="ps-5" th:text="${exp.category} + ': ' + ${exp.itemName}"></td>
-                            <td class="text-end" th:text="${#numbers.formatDecimal(exp.amount, 1, 'COMMA', 0, 'POINT')}"></td>
+                            <td class="text-end text-danger" th:text="${#numbers.formatDecimal(exp.amount, 1, 'COMMA', 0, 'POINT')}"></td>
                             <td></td>
                         </tr>
 
                         <tr class="fw-bold">
                             <td class="text-end">Total Other Expenses</td>
-                            <td class="text-end" th:text="${#numbers.formatDecimal(totalOps, 1, 'COMMA', 0, 'POINT')}"></td>
-                            <td class="text-end" th:text="${#numbers.formatDecimal(totalCogs + totalOps, 1, 'COMMA', 0, 'POINT')}"></td>
+                            <td class="text-end text-danger" th:text="${#numbers.formatDecimal(totalOps, 1, 'COMMA', 0, 'POINT')}"></td>
+                            <td class="text-end text-danger" th:text="${#numbers.formatDecimal(totalCogs + totalOps, 1, 'COMMA', 0, 'POINT')}"></td>
                         </tr>
                         </tbody>
 

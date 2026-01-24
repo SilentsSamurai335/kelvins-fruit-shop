@@ -34,6 +34,13 @@
         [data-theme="dark"] .notice-item p { color: #e0e0e0 !important; }
         [data-theme="dark"] .notice-item small.text-muted { color: #adb5bd !important; }
         [data-theme="dark"] .notice-form-input { background-color: #2b2b2b !important; color: white !important; border: 1px solid #555 !important; }
+
+        /* FIX CHAT VISIBILITY IN DARK MODE */
+        [data-theme="dark"] .msg-other {
+            background-color: #343a40 !important;
+            color: #ffffff !important; /* Forces White Text */
+            border: 1px solid #495057; /* Optional: adds subtle border */
+        }
     </style>
 </head>
 <body>
@@ -64,7 +71,6 @@
                         <div class="chat-window">
                             <div class="p-3 border-bottom bg-light text-dark fw-bold d-flex justify-content-between">
                                 <span><i class="fas fa-comments text-warning"></i> <span th:text="${chatTarget}">Chat</span></span>
-                                <small class="text-success"><i class="fas fa-circle" style="font-size: 8px;"></i> Online</small>
                             </div>
 
                             <div id="chatArea" class="chat-messages">

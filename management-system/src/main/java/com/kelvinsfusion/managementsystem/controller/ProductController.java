@@ -503,159 +503,104 @@ public class ProductController {
     // ==========================================
     @GetMapping("/analytics")
     public String showAnalytics(@RequestParam(value = "period", defaultValue = "monthly") String period,
-                                Model model,
-                                Principal principal) { // Added Principal
-
-        // SECURITY CHECK: Redirect if not admin
-        if (!"admin".equals(principal.getName())) {
-            return "redirect:/";
-        }
-
-        // ... (Keep the rest of your existing analytics logic exactly the same) ...
+                                Model model, Principal principal) {
+        if (!"admin".equals(principal.getName())) return "redirect:/";
 
         LocalDate today = LocalDate.now();
-        List<String> labels = new ArrayList<>();
-        List<Double> trendData = new ArrayList<>();
 
-        // Stacked Bar Data Lists
-        List<Double> stackJuice = new ArrayList<>();
-        List<Double> stackUji = new ArrayList<>();
-        List<Double> stackCake = new ArrayList<>();
-        List<Double> stackCookie = new ArrayList<>();
+        // 1. DETERMINE DATE RANGE
+        LocalDate start = LocalDate.of(today.getYear(), 1, 1);
+        LocalDate end = LocalDate.of(today.getYear(), 12, 31);
 
-        // 1. DETERMINE DATE RANGE & GRANULARITY
-        LocalDate start = today;
-        LocalDate end = today;
+        if ("daily".equals(period)) start = today.minusDays(29);
+        else if ("weekly".equals(period)) start = today.minusWeeks(11);
+        else if ("annually".equals(period)) start = today.minusYears(4).withDayOfYear(1);
 
-        if ("daily".equals(period)) {
-            start = today.minusDays(29); // Last 30 Days
-            // Loop day by day
-            for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
-                labels.add(date.getDayOfMonth() + "/" + date.getMonthValue()); // "22/1"
-            }
-        }
-        else if ("weekly".equals(period)) {
-            start = today.minusWeeks(11); // Last 12 Weeks
-            // Loop week by week
-            for (int i = 0; i < 12; i++) {
-                labels.add("W" + (11-i)); // "W11", "W10"...
-            }
-        }
-        else if ("annually".equals(period)) {
-            start = today.minusYears(4).withDayOfYear(1); // Last 5 Years
-            // Loop year by year
-            for (int i = 0; i < 5; i++) {
-                labels.add(String.valueOf(start.getYear() + i));
-            }
-        }
-        else if ("all".equals(period)) {
-            // Find very first sale
-            Sale firstSale = saleRepository.findFirstByOrderBySaleDateTimeAsc();
-            start = (firstSale != null) ? firstSale.getSaleDateTime().toLocalDate() : today.minusMonths(1);
-            // Default to Yearly view for All Time
-            int startYear = start.getYear();
-            int endYear = today.getYear();
-            labels.clear();
-            for(int y = startYear; y <= endYear; y++) labels.add(String.valueOf(y));
-        }
-        else {
-            // DEFAULT: MONTHLY (This Year)
-            start = LocalDate.of(today.getYear(), 1, 1);
-            end = LocalDate.of(today.getYear(), 12, 31);
-            String[] months = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-            labels.addAll(Arrays.asList(months));
-        }
-
-        // 2. FETCH DATA & AGGREGATE
+        // 2. FETCH DATA
         List<Sale> sales = saleRepository.findBySaleDateTimeBetween(start.atStartOfDay(), end.atTime(23, 59, 59));
+        List<Expense> expenses = expenseRepository.findByDateBetween(start, end);
 
-        // Initialize Data Lists with 0.0 based on labels size
-        for(int i=0; i<labels.size(); i++) {
-            trendData.add(0.0); stackJuice.add(0.0); stackUji.add(0.0); stackCake.add(0.0); stackCookie.add(0.0);
-        }
-
-        // 3. CATEGORY & PAYMENT MAPS (For Pie Charts)
+        // 3. PROCESS SALES DATA
+        double totalRevenue = 0;
         Map<String, Double> catRevenue = new HashMap<>();
         Map<String, Double> paymentMap = new HashMap<>();
-        // Table Data
-        Map<String, Map<String, Double>> detailedTable = new HashMap<>();
-        String[] cats = {"Juices", "Uji", "Cupcakes", "Cookies", "Other"};
-        for(String c : cats) {
-            detailedTable.put(c, new HashMap<>());
-            detailedTable.get(c).put("Cash", 0.0);
-            detailedTable.get(c).put("Mpesa", 0.0);
-        }
+        double[] weeklyTrend = new double[7]; // Mon=0, Sun=6
+        String[] daysOfWeek = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
+
+        // Variables for Executive Summary
+        Map<String, Double> monthlyTotals = new HashMap<>();
 
         for (Sale s : sales) {
-            LocalDateTime dt = s.getSaleDateTime();
-            String item = (s.getItemsSold() != null) ? s.getItemsSold().toLowerCase() : "";
             double amt = s.getTotalAmount();
-            String pay = s.getPaymentMethod();
+            totalRevenue += amt;
 
-            // A. Categorize
+            // Category Logic
+            String item = (s.getItemsSold() != null) ? s.getItemsSold().toLowerCase() : "";
             String cat = "Other";
-            if (item.contains("juice") || item.contains("passion") || item.contains("mango")) cat = "Juices";
+            if (item.contains("juice") || item.contains("passion")) cat = "Juices";
             else if (item.contains("uji")) cat = "Uji";
             else if (item.contains("cupcake") || item.contains("cake")) cat = "Cupcakes";
             else if (item.contains("cookie") || item.contains("biscuit")) cat = "Cookies";
-
-            // B. Fill Pie Charts & Table
             catRevenue.put(cat, catRevenue.getOrDefault(cat, 0.0) + amt);
-            paymentMap.put(pay, paymentMap.getOrDefault(pay, 0.0) + amt);
 
-            if(detailedTable.containsKey(cat)) {
-                String pKey = "Mpesa".equalsIgnoreCase(pay) ? "Mpesa" : "Cash";
-                detailedTable.get(cat).put(pKey, detailedTable.get(cat).get(pKey) + amt);
-            }
+            // Payment Logic
+            paymentMap.put(s.getPaymentMethod(), paymentMap.getOrDefault(s.getPaymentMethod(), 0.0) + amt);
 
-            // C. Map to Graph Index
-            int index = -1;
-            if ("daily".equals(period)) {
-                // Find index matching day/month. Simple logic: Days from start
-                long daysBetween = java.time.temporal.ChronoUnit.DAYS.between(start, dt.toLocalDate());
-                if (daysBetween >= 0 && daysBetween < labels.size()) index = (int) daysBetween;
-            }
-            else if ("weekly".equals(period)) {
-                // Map to week bucket (simplified)
-                long weeksBetween = java.time.temporal.ChronoUnit.WEEKS.between(start, dt.toLocalDate());
-                if (weeksBetween >= 0 && weeksBetween < labels.size()) index = (int) weeksBetween;
-            }
-            else if ("annually".equals(period) || "all".equals(period)) {
-                // Map to Year
-                int yearDiff = dt.getYear() - start.getYear();
-                if (yearDiff >= 0 && yearDiff < labels.size()) index = yearDiff;
-            }
-            else {
-                // Monthly
-                index = dt.getMonthValue() - 1;
-            }
+            // Day of Week Logic
+            int dayIdx = s.getSaleDateTime().getDayOfWeek().getValue() - 1; // 1(Mon)-7(Sun) -> 0-6
+            weeklyTrend[dayIdx] += amt;
 
-            // D. Add to Stacked Arrays
-            if (index >= 0 && index < labels.size()) {
-                trendData.set(index, trendData.get(index) + amt);
-
-                if (cat.equals("Juices")) stackJuice.set(index, stackJuice.get(index) + amt);
-                else if (cat.equals("Uji")) stackUji.set(index, stackUji.get(index) + amt);
-                else if (cat.equals("Cupcakes")) stackCake.set(index, stackCake.get(index) + amt);
-                else if (cat.equals("Cookies")) stackCookie.set(index, stackCookie.get(index) + amt);
-            }
+            // Monthly Totals for Summary
+            String month = s.getSaleDateTime().getMonth().name();
+            monthlyTotals.put(month, monthlyTotals.getOrDefault(month, 0.0) + amt);
         }
 
-        double totalRevenue = sales.stream().mapToDouble(Sale::getTotalAmount).sum();
+        // 4. PROCESS EXPENSE DATA (For Pie Chart)
+        Map<String, Double> expMap = new HashMap<>();
+        for(Expense e : expenses) {
+            String cat = e.getCategory();
+            expMap.put(cat, expMap.getOrDefault(cat, 0.0) + e.getAmount());
+        }
 
-        model.addAttribute("period", period);
+        // 5. CALCULATE EXECUTIVE SUMMARY STATS
+        String bestMonth = "N/A";
+        double bestMonthAmt = 0;
+        String worstMonth = "N/A";
+        double worstMonthAmt = Double.MAX_VALUE;
+
+        for(Map.Entry<String, Double> entry : monthlyTotals.entrySet()) {
+            if(entry.getValue() > bestMonthAmt) {
+                bestMonthAmt = entry.getValue();
+                bestMonth = entry.getKey();
+            }
+            if(entry.getValue() < worstMonthAmt) {
+                worstMonthAmt = entry.getValue();
+                worstMonth = entry.getKey();
+            }
+        }
+        if(monthlyTotals.isEmpty()) worstMonthAmt = 0;
+
+        // 6. PASS TO MODEL
         model.addAttribute("totalRevenue", totalRevenue);
-        model.addAttribute("labels", labels);
-        model.addAttribute("trendData", trendData);
+        model.addAttribute("period", period);
+
+        // Charts
         model.addAttribute("catLabels", catRevenue.keySet());
         model.addAttribute("catData", catRevenue.values());
         model.addAttribute("payLabels", paymentMap.keySet());
         model.addAttribute("payData", paymentMap.values());
-        model.addAttribute("stackJuice", stackJuice);
-        model.addAttribute("stackUji", stackUji);
-        model.addAttribute("stackCake", stackCake);
-        model.addAttribute("stackCookie", stackCookie);
-        model.addAttribute("detailedTable", detailedTable);
+
+        // New Charts
+        model.addAttribute("expLabels", expMap.keySet());
+        model.addAttribute("expData", expMap.values());
+        model.addAttribute("dayLabels", daysOfWeek);
+        model.addAttribute("dayData", weeklyTrend);
+
+        // Summary Stats
+        model.addAttribute("bestMonth", bestMonth);
+        model.addAttribute("bestMonthAmt", bestMonthAmt);
+        model.addAttribute("worstMonth", worstMonth);
+        model.addAttribute("worstMonthAmt", worstMonthAmt);
 
         return "analytics";
     }

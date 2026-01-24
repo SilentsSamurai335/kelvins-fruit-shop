@@ -1,19 +1,26 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Financial Review - Fruity Fusion</title>
+    <title>Financial Review - Kelvin's Fruity Fusion</title>
     <th:block th:replace="~{fragments :: styles}"></th:block>
-
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/html-docx-js@0.3.1/dist/html-docx.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
     <style>
+        /* FIX: Turn 'bg-white' elements dark in Dark Mode so white text is visible */
+        [data-theme="dark"] .bg-white {
+            background-color: var(--card-bg) !important;
+            color: var(--text-color) !important;
+        }
         .chart-container { position: relative; height: 300px; width: 100%; }
         #wordExportTemplate { display: none; }
         .filter-btn { min-width: 80px; }
         .filter-btn.active { background-color: var(--ff-yellow); color: black; border-color: var(--ff-yellow); font-weight: bold; }
+
+        /* DARK MODE CHART HEADINGS FIX */
+        [data-theme="dark"] .card-header { color: white !important; }
+        [data-theme="dark"] h1, [data-theme="dark"] h2, [data-theme="dark"] h3, [data-theme="dark"] h4, [data-theme="dark"] h5, [data-theme="dark"] h6 { color: white !important; }
     </style>
 </head>
 <body>
@@ -38,51 +45,35 @@
                     <a href="/analytics?period=all" class="btn btn-outline-secondary filter-btn" th:classappend="${period == 'all'} ? 'active'">All Time</a>
                 </div>
 
-                <button onclick="exportDocx()" class="btn btn-primary fw-bold shadow-sm">
-                    <i class="fas fa-file-word"></i> Download .docx
-                </button>
-            </div>
-
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-header bg-white fw-bold border-0 d-flex justify-content-between">
-                    <span>1. Sales Trend ([[${#strings.capitalize(period)}]])</span>
-                    <span class="text-success">Total: KES [[${#numbers.formatDecimal(totalRevenue, 0, 'COMMA', 0, 'POINT')}]]</span>
-                </div>
-                <div class="card-body">
-                    <div class="chart-container">
-                        <canvas id="trendChart"></canvas>
-                    </div>
-                </div>
+                <button onclick="exportDocx()" class="btn btn-primary fw-bold shadow-sm"><i class="fas fa-file-word"></i> Download Report</button>
             </div>
 
             <div class="row g-4 mb-4">
                 <div class="col-md-6">
                     <div class="card shadow-sm border-0 h-100">
-                        <div class="card-header bg-white fw-bold border-0">2. Sales by Category</div>
-                        <div class="card-body">
-                            <div class="chart-container">
-                                <canvas id="categoryPieChart"></canvas>
-                            </div>
-                        </div>
+                        <div class="card-header bg-white fw-bold border-0">1. Sales Distribution</div>
+                        <div class="card-body"><div class="chart-container"><canvas id="catChart"></canvas></div></div>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="card shadow-sm border-0 h-100">
-                        <div class="card-header bg-white fw-bold border-0">3. Payment Method</div>
-                        <div class="card-body">
-                            <div class="chart-container">
-                                <canvas id="paymentPieChart"></canvas>
-                            </div>
-                        </div>
+                        <div class="card-header bg-white fw-bold border-0">2. Expense Breakdown</div>
+                        <div class="card-body"><div class="chart-container"><canvas id="expChart"></canvas></div></div>
                     </div>
                 </div>
             </div>
 
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-header bg-white fw-bold border-0">4. Product Performance Breakdown</div>
-                <div class="card-body">
-                    <div class="chart-container">
-                        <canvas id="stackedBarChart"></canvas>
+            <div class="row g-4 mb-4">
+                <div class="col-md-8">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-header bg-white fw-bold border-0">3. Weekly Customer Trend (Day of Week)</div>
+                        <div class="card-body"><div class="chart-container"><canvas id="dayChart"></canvas></div></div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-header bg-white fw-bold border-0">4. Payment Methods</div>
+                        <div class="card-body"><div class="chart-container"><canvas id="payChart"></canvas></div></div>
                     </div>
                 </div>
             </div>
@@ -92,152 +83,107 @@
 </div>
 
 <div id="wordExportTemplate">
-    <div style="font-family: Calibri, sans-serif; padding: 20px;">
-        <h1 style="text-align: center; color: #2c3e50;">FRUITY FUSION FINANCIAL REPORT</h1>
-        <p style="text-align: center; font-style: italic;">Generated on [[${#temporals.format(#temporals.createNow(), 'MMMM dd, yyyy')}]]</p>
-        <hr/>
+    <div style="font-family: 'Times New Roman', serif; padding: 20px;">
+
+        <h1 style="text-align: center; text-decoration: underline; text-transform: uppercase;">
+            KFF <span th:text="${#temporals.format(#temporals.createNow(), 'yyyy')}">2026</span> FINANCIAL REVIEW
+        </h1>
+
+        <p>Below is a summary of your business performance, including total revenue, best-selling products, and monthly trends.</p>
 
         <h3>1. Executive Summary</h3>
         <ul>
-            <li><strong>Period:</strong> [[${#strings.capitalize(period)}]] View</li>
-            <li><strong>Total Revenue:</strong> KES [[${#numbers.formatDecimal(totalRevenue, 0, 'COMMA', 0, 'POINT')}]]</li>
+            <li><strong>Total Annual Revenue:</strong> KES [[${#numbers.formatDecimal(totalRevenue, 0, 'COMMA', 0, 'POINT')}]]</li>
+            <li><strong>Best Performing Month:</strong> <span th:text="${bestMonth}">March</span> (KES [[${#numbers.formatDecimal(bestMonthAmt, 0, 'COMMA', 0, 'POINT')}]])</li>
+            <li><strong>Lowest Performing Month:</strong> <span th:text="${worstMonth}">July</span> (KES [[${#numbers.formatDecimal(worstMonthAmt, 0, 'COMMA', 0, 'POINT')}]])</li>
+            <li><strong>Preferred Payment Method:</strong> Mpesa (Typically ~80% of transactions)</li>
         </ul>
 
-        <h3>2. Sales Breakdown</h3>
-        <table border="1" style="width: 100%; border-collapse: collapse; text-align: center; font-size: 11pt;">
-            <tr style="background-color: #f2f2f2; font-weight: bold;">
-                <td style="padding: 5px;">Category</td>
-                <td style="padding: 5px;">Cash</td>
-                <td style="padding: 5px;">Mpesa</td>
-                <td style="padding: 5px;">Total</td>
-            </tr>
-            <tr th:each="entry : ${detailedTable}">
-                <td th:text="${entry.key}" style="text-align: left; padding: 5px;"></td>
-                <td th:text="${#numbers.formatDecimal(entry.value['Cash'], 0, 'COMMA', 0, 'POINT')}"></td>
-                <td th:text="${#numbers.formatDecimal(entry.value['Mpesa'], 0, 'COMMA', 0, 'POINT')}"></td>
-                <td style="font-weight: bold;" th:text="${#numbers.formatDecimal(entry.value['Cash'] + entry.value['Mpesa'], 0, 'COMMA', 0, 'POINT')}"></td>
-            </tr>
-            <tr style="background-color: #d1e7dd; font-weight: bold;">
-                <td style="padding: 5px;">GRAND TOTAL</td>
-                <td colspan="3">KES [[${#numbers.formatDecimal(totalRevenue, 0, 'COMMA', 0, 'POINT')}]]</td>
-            </tr>
-        </table>
+        <hr/>
 
-        <h3>3. Sales Trend</h3>
-        <img id="imgTrend" width="600" />
+        <h3>2. Sales Breakdown by Category</h3>
+        <p>This chart shows which products are contributing most to your revenue.</p>
+        <img id="imgCat" width="450" />
         <br/><br/>
 
-        <h3>4. Category Performance</h3>
-        <img id="imgCategory" width="400" />
+        <h3>3. Expense Analysis</h3>
+        <p>A breakdown of where the business spends the most money.</p>
+        <img id="imgExp" width="450" />
         <br/><br/>
 
-        <h3>5. Payment Analysis</h3>
-        <img id="imgPayment" width="400" />
+        <h3>4. Weekly Customer Trends</h3>
+        <p>This line graph highlights the busiest days of the week.</p>
+        <img id="imgDay" width="600" />
+        <br/><br/>
+
+        <h3>5. Payment Method Analysis</h3>
+        <p>Breakdown of Cash vs. Mpesa transactions.</p>
+        <img id="imgPay" width="400" />
+
     </div>
 </div>
 
 <script th:inline="javascript">
-    // DATA FROM JAVA
-    const labels = [[${labels}]];
-    const trendData = [[${trendData}]];
+    // DATA FROM CONTROLLER
     const catLabels = [[${catLabels}]];
     const catData = [[${catData}]];
+    const expLabels = [[${expLabels}]];
+    const expData = [[${expData}]];
+    const dayLabels = [[${dayLabels}]];
+    const dayData = [[${dayData}]];
     const payLabels = [[${payLabels}]];
     const payData = [[${payData}]];
 
-    const stackJuice = [[${stackJuice}]];
-    const stackUji = [[${stackUji}]];
-    const stackCake = [[${stackCake}]];
-    const stackCookie = [[${stackCookie}]];
-
-    // 1. TREND CHART (Blue Bar)
-    const chart1 = new Chart(document.getElementById('trendChart'), {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Revenue',
-                data: trendData,
-                backgroundColor: '#87CEEB',
-                borderWidth: 0
-            }]
-        },
-        options: { maintainAspectRatio: false }
-    });
-
-    // 2. CATEGORY PIE
-    const chart2 = new Chart(document.getElementById('categoryPieChart'), {
+    // CHART 1: SALES PIE
+    const c1 = new Chart(document.getElementById('catChart'), {
         type: 'pie',
-        data: {
-            labels: catLabels,
-            datasets: [{
-                data: catData,
-                backgroundColor: ['#FFD700', '#FA8072', '#87CEEB', '#90EE90', '#D3D3D3']
-            }]
-        },
+        data: { labels: catLabels, datasets: [{ data: catData, backgroundColor: ['#FFD700', '#FF6384', '#36A2EB', '#4BC0C0'] }] },
         options: { maintainAspectRatio: false }
     });
 
-    // 3. PAYMENT PIE
-    const chart3 = new Chart(document.getElementById('paymentPieChart'), {
+    // CHART 2: EXPENSE PIE
+    const c2 = new Chart(document.getElementById('expChart'), {
         type: 'pie',
-        data: {
-            labels: payLabels,
-            datasets: [{
-                data: payData,
-                backgroundColor: ['#FFB6C1', '#1E90FF']
-            }]
-        },
+        data: { labels: expLabels, datasets: [{ data: expData, backgroundColor: ['#FF5733', '#C70039', '#900C3F', '#581845', '#FFC300'] }] },
         options: { maintainAspectRatio: false }
     });
 
-    // 4. STACKED BAR
-    new Chart(document.getElementById('stackedBarChart'), {
-        type: 'bar',
+    // CHART 3: DAY OF WEEK LINE
+    const c3 = new Chart(document.getElementById('dayChart'), {
+        type: 'line',
         data: {
-            labels: labels,
-            datasets: [
-                { label: 'Juices', data: stackJuice, backgroundColor: '#0047AB' },
-                { label: 'Uji', data: stackUji, backgroundColor: '#4169E1' },
-                { label: 'Cupcakes', data: stackCake, backgroundColor: '#87CEEB' },
-                { label: 'Cookies', data: stackCookie, backgroundColor: '#E0FFFF' }
-            ]
+            labels: dayLabels,
+            datasets: [{
+                label: 'Sales Revenue',
+                data: dayData,
+                borderColor: '#28a745',
+                backgroundColor: 'rgba(40, 167, 69, 0.2)',
+                fill: true,
+                tension: 0.4
+            }]
         },
-        options: {
-            maintainAspectRatio: false,
-            scales: { x: { stacked: true }, y: { stacked: true } }
-        }
+        options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
     });
 
-    // --- TRUE .DOCX EXPORT FUNCTION ---
+    // CHART 4: PAYMENT PIE
+    const c4 = new Chart(document.getElementById('payChart'), {
+        type: 'doughnut',
+        data: { labels: payLabels, datasets: [{ data: payData, backgroundColor: ['#FF9F40', '#36A2EB'] }] },
+        options: { maintainAspectRatio: false }
+    });
+
+    // DOCX EXPORT
     function exportDocx() {
-        // 1. Convert Charts to Images
-        document.getElementById('imgTrend').src = chart1.toBase64Image();
-        document.getElementById('imgCategory').src = chart2.toBase64Image();
-        document.getElementById('imgPayment').src = chart3.toBase64Image();
+        // Capture Images
+        document.getElementById('imgCat').src = c1.toBase64Image();
+        document.getElementById('imgExp').src = c2.toBase64Image();
+        document.getElementById('imgDay').src = c3.toBase64Image();
+        document.getElementById('imgPay').src = c4.toBase64Image();
 
-        // 2. Allow image render time (small delay to ensure Base64 is set)
         setTimeout(() => {
-            // 3. Get HTML Content
             var content = document.getElementById('wordExportTemplate').innerHTML;
-
-            // 4. Wrap in basic HTML structure for the converter
-            var htmlDoc = `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                </head>
-                <body>
-                    ${content}
-                </body>
-                </html>
-            `;
-
-            // 5. Use html-docx-js to convert HTML -> Blob
+            var htmlDoc = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>${content}</body></html>`;
             var converted = htmlDocx.asBlob(htmlDoc);
-
-            // 6. Save as proper .docx
             saveAs(converted, 'KFF_Financial_Report.docx');
         }, 500);
     }
