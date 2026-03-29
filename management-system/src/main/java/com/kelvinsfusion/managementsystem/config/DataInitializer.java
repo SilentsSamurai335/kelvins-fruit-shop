@@ -12,17 +12,20 @@ public class DataInitializer implements CommandLineRunner {
     @Autowired
     private UserRepository userRepository;
 
-    @Override
-    public void run(String... args) throws Exception {
-        // Check if Admin exists. If not, create one.
-        if (userRepository.findByUsername("admin").isEmpty()) {
-            User admin = new User();
-            admin.setUsername("kelvin");
-            admin.setPassword("password123");
-            admin.setRole("ADMIN");
-            admin.setFullName("Kelvin");
-            userRepository.save(admin);
-            System.out.println("✅ ADMIN ACCOUNT CREATED: kelvin / password123");
-        }
+    @Autowired
+private UserRepository userRepository;
+
+@Override
+public void run(String... args) throws Exception {
+    // Check if Kelvin exists. If not, create one.
+    if (userRepository.findByUsername("kelvin").isEmpty()) {
+        User admin = new User();
+        admin.setUsername("kelvin");
+        admin.setPassword("password123");
+        admin.setRole("ADMIN");
+        admin.setFullName("Kelvin");
+        userRepository.save(admin);
+        System.out.println("✅ ADMIN ACCOUNT CREATED: kelvin / password123");
     }
+}
 }
