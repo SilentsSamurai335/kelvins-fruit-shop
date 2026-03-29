@@ -12,9 +12,6 @@ public class DataInitializer implements CommandLineRunner {
     @Autowired
     private UserRepository userRepository;
 
-    @Autowired
-private UserRepository userRepository;
-
 @Override
 public void run(String... args) throws Exception {
     // Check if Kelvin exists. If not, create one.
