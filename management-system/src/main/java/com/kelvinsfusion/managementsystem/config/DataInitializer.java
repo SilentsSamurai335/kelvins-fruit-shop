@@ -15,7 +15,7 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
         // Check if Admin exists. If not, create one.
-        if (userRepository.findByUsername("admin").isEmpty()) {
+        if (userRepository.findByUsername("kelvin").isEmpty()) {
             User admin = new User();
             admin.setUsername("kelvin");
             admin.setPassword("password123");
