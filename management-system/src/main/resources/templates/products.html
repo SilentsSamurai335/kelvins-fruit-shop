@@ -67,8 +67,8 @@
                                                 </button>
                                             </div>
 
-                                            <button class="btn btn-dark btn-sm w-100"
-                                                    th:onclick="openMixModal([[${product.name}]], [[${product.priceSmall}]], [[${product.priceLarge}]])">
+                                            <button class="btn btn-dark w-100 btn-sm"
+                                                    th:onclick="openMixModal([[${product.id}]], [[${product.name}]], [[${product.priceSmall}]], [[${product.priceLarge}]])">
                                                 Create Mix
                                             </button>
                                         </div>
@@ -136,48 +136,63 @@
             </div>
         </div>
 
-        <div id="mixModal" class="modal" tabindex="-1" style="display: none; background: rgba(0,0,0,0.5);">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content border-0 shadow-lg">
-                    <div class="modal-header border-bottom-0">
-                        <h5 class="fw-bold modal-title">🍹 Create Mix</h5>
-                        <button type="button" class="btn-close" onclick="closeMixModal()"></button>
+        <div class="modal fade" id="mixModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title fw-bold">🍹 Create Custom Mix</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
-                        <input type="hidden" id="basePriceSmall">
-                        <input type="hidden" id="basePriceLarge">
+                        <input type="hidden" id="mixBaseId">
+                        <input type="hidden" id="mixBaseName">
 
-                        <label class="small fw-bold opacity-75">Base Flavor</label>
-                        <input type="text" id="modalBaseFlavor" class="form-control mb-2 fw-bold" readonly>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-uppercase">Base Flavor</label>
+                            <input type="text" id="mixBaseDisplay" class="form-control bg-secondary text-white fw-bold border-0" readonly>
+                        </div>
 
-                        <label class="small fw-bold opacity-75">Mix-ins (Optional)</label>
-                        <select id="modalFlavor2" class="form-select mb-2">
-                            <option value="" selected>None</option>
-                            <option th:each="bev : ${listProducts}" th:if="${bev.category == 'Beverage'}" th:value="${bev.name}" th:text="${bev.name}"></option>
-                        </select>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label fw-bold mb-0 small text-uppercase">Mix With:</label>
+                                <button type="button" class="btn btn-sm btn-warning fw-bold" onclick="addMixinRow()">+ Add Flavor</button>
+                            </div>
+                            <div id="mixinsContainer"></div>
+                        </div>
 
-                        <div class="row g-2 mb-3">
-                            <div class="col-4">
-                                <label class="small fw-bold">Size</label>
-                                <select id="modalSize" class="form-select" onchange="updateModalPrice()">
-                                    <option value="250ml">250ml</option>
-                                    <option value="500ml">500ml</option>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="form-label fw-bold small">Size</label>
+                                <select id="mixSize" class="form-select" onchange="updateMixPrice()">
+                                    <option value="250">250ml</option>
+                                    <option value="500">500ml</option>
                                 </select>
                             </div>
-                            <div class="col-4">
-                                <label class="small fw-bold">Quantity</label>
-                                <input type="number" id="modalQty" class="form-control" value="1" min="1">
-                            </div>
-                            <div class="col-4">
-                                <label class="small fw-bold">Price (Each)</label>
-                                <input type="number" id="modalAmount" class="form-control" readonly>
+                            <div class="col-6">
+                                <label class="form-label fw-bold small">Quantity</label>
+                                <input type="number" id="mixQty" class="form-control" value="1" min="1" onchange="updateMixPrice()">
                             </div>
                         </div>
 
-                        <button type="button" class="btn btn-dark w-100 fw-bold" onclick="addMixToCart()">Add Mix to Cart</button>
+                        <div class="mt-4 p-3 rounded bg-dark bg-opacity-10 text-center border">
+                            <small class="text-muted d-block small">TOTAL COST</small>
+                            <h3 class="fw-bold text-yellow mb-0" id="mixTotalPrice">KES 0</h3>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0">
+                        <button type="button" class="btn btn-success fw-bold w-100" onclick="submitMix()">Add to Order</button>
                     </div>
                 </div>
             </div>
+        </div>
+
+        <div id="juiceOptionTemplate" style="display:none;">
+            <option value="">Select a juice...</option>
+            <th:block th:each="p : ${listProducts}">
+                <option th:if="${p.category == 'Beverage'}"
+                        th:value="${p.name}"
+                        th:text="${p.name}"></option>
+            </th:block>
         </div>
 
     </div>
@@ -188,7 +203,7 @@
     let cart = [];
 
     function addToCart(id, name, price) {
-        let existing = cart.find(item => item.name === name); // Group by Name
+        let existing = cart.find(item => item.name === name);
         if (existing) {
             existing.qty++;
         } else {
@@ -197,12 +212,11 @@
         updateCartUI();
     }
 
-    // SPECIAL HELPER FOR BEVERAGES (Handles 250ml vs 500ml logic)
+    // HELPER FOR NON-BEVERAGES
     function addToCartWithQty(id, name, price) {
         let qtyInput = document.getElementById('qty-' + id);
         let qty = parseInt(qtyInput.value) || 1;
 
-        // Add item multiple times based on quantity
         let existing = cart.find(item => item.name === name);
         if (existing) {
             existing.qty += qty;
@@ -210,25 +224,22 @@
             cart.push({ id: id, name: name, price: price, qty: qty });
         }
         updateCartUI();
-        qtyInput.value = 1; // Reset input
+        qtyInput.value = 1;
     }
 
-    // UPDATED BEVERAGE FUNCTION (Handles Custom)
-    // UPDATED BEVERAGE FUNCTION
+    // BEVERAGE FUNCTION (Handles sizes & custom pricing)
     function addBeverageToCart(id, name, priceSm, priceLg) {
         let sizeSelect = document.getElementById("size-" + id);
         let size = sizeSelect.value;
         let qtyInput = document.getElementById("qty-bev-" + id);
         let qty = parseInt(qtyInput.value) || 1;
 
-        // Custom Logic
         if (size === "Custom") {
             let customName = prompt("Size Name:");
             if (!customName) return;
             let customPrice = prompt("Price:");
             if (!customPrice) return;
 
-            // Add Custom Item
             addToCartWithQtyValue(id, name + " (" + customName + ")", parseFloat(customPrice), qty);
             return;
         }
@@ -236,10 +247,7 @@
         let finalPrice = (size === "250ml") ? priceSm : priceLg;
         let finalName = name + " (" + size + ")";
 
-        // Helper function to push to cart
         addToCartWithQtyValue(id, finalName, finalPrice, qty);
-
-        // Reset Qty
         qtyInput.value = 1;
     }
 
@@ -270,41 +278,72 @@
         updateCartUI();
     }
 
-    // 2. MIX LOGIC (Connects Modal to Cart)
-    function openMixModal(baseName, pSm, pLg) {
-        document.getElementById("mixModal").style.display = "block";
-        document.getElementById("modalBaseFlavor").value = baseName;
-        document.getElementById("basePriceSmall").value = pSm;
-        document.getElementById("basePriceLarge").value = pLg;
-        updateModalPrice();
+    // 2. MODAL LOGIC FOR MIXED JUICES
+    function openMixModal(id, name, price250, price500) {
+        document.getElementById('mixBaseId').value = id;
+        document.getElementById('mixBaseName').value = name;
+        document.getElementById('mixBaseDisplay').value = name;
+
+        const modal = document.getElementById('mixModal');
+        modal.dataset.p250 = price250;
+        modal.dataset.p500 = price500;
+
+        document.getElementById('mixQty').value = 1;
+        document.getElementById('mixSize').value = "250";
+
+        document.getElementById('mixinsContainer').innerHTML = '';
+        addMixinRow();
+
+        updateMixPrice();
+        new bootstrap.Modal(modal).show();
     }
 
-    function closeMixModal() {
-        document.getElementById("mixModal").style.display = "none";
+    function addMixinRow() {
+        const container = document.getElementById('mixinsContainer');
+        const options = document.getElementById('juiceOptionTemplate').innerHTML;
+
+        const row = document.createElement('div');
+        row.className = 'input-group mb-2 mixin-row';
+        row.innerHTML = `
+            <select class="form-select mixin-select">${options}</select>
+            <button type="button" class="btn btn-outline-danger" onclick="this.parentElement.remove()">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        container.appendChild(row);
     }
 
-    function updateModalPrice() {
-        let size = document.getElementById("modalSize").value;
-        let pSm = document.getElementById("basePriceSmall").value;
-        let pLg = document.getElementById("basePriceLarge").value;
-        document.getElementById("modalAmount").value = (size === "250ml" ? pSm : pLg);
+    function updateMixPrice() {
+        const modal = document.getElementById('mixModal');
+        const size = document.getElementById('mixSize').value;
+        const qty = parseInt(document.getElementById('mixQty').value) || 1;
+
+        let unitPrice = (size === "500") ? parseFloat(modal.dataset.p500) : parseFloat(modal.dataset.p250);
+        let total = unitPrice * qty;
+
+        document.getElementById('mixTotalPrice').innerText = "KES " + total.toLocaleString();
     }
 
-    // UPDATED MIX FUNCTION
-    function addMixToCart() {
-        let base = document.getElementById("modalBaseFlavor").value;
-        let mixin = document.getElementById("modalFlavor2").value;
-        let size = document.getElementById("modalSize").value;
-        let price = parseFloat(document.getElementById("modalAmount").value);
-        let qty = parseInt(document.getElementById("modalQty").value) || 1; // Read Qty
+    function submitMix() {
+        const baseId = document.getElementById('mixBaseId').value;
+        const baseName = document.getElementById('mixBaseName').value;
+        const size = document.getElementById('mixSize').value;
+        const qty = parseInt(document.getElementById('mixQty').value) || 1;
 
-        let fullName = "Mix: " + base;
-        if(mixin) fullName += " + " + mixin;
-        fullName += " (" + size + ")";
+        const selects = document.querySelectorAll('.mixin-select');
+        let mixins = [];
+        selects.forEach(s => { if(s.value) mixins.push(s.value); });
 
-        addToCartWithQtyValue(0, fullName, price, qty);
-        closeMixModal();
+        let finalName = baseName + " (" + size + "ml)";
+        if(mixins.length > 0) finalName += " w/ " + mixins.join(" & ");
+
+        const modal = document.getElementById('mixModal');
+        let unitPrice = (size === "500") ? parseFloat(modal.dataset.p500) : parseFloat(modal.dataset.p250);
+
+        addToCartWithQtyValue(baseId, finalName, unitPrice, qty);
+        bootstrap.Modal.getInstance(document.getElementById('mixModal')).hide();
     }
+
     // SHARED HELPER FUNCTION
     function addToCartWithQtyValue(id, name, price, qtyToAdd) {
         let existing = cart.find(item => item.name === name);
@@ -316,7 +355,7 @@
         updateCartUI();
     }
 
-    // 3. PAYMENT LOGIC (Simplified: No Phone, No STK)
+    // 3. PAYMENT LOGIC
     async function processPayment() {
         if (cart.length === 0) { alert("Cart is empty"); return; }
 
@@ -335,7 +374,6 @@
                     paymentMethod: method,
                     amount: total,
                     items: cart
-                    // Removed phoneNumber property
                 })
             });
 

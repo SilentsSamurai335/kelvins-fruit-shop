@@ -6,22 +6,11 @@
 
     <style>
         @media print {
-            /* Hide Sidebar, Buttons, Filters */
             .no-print { display: none !important; }
-
-            /* Reset Layout for Paper */
             body, #wrapper, .main-content, .container-fluid {
-                margin: 0 !important;
-                padding: 0 !important;
-                width: 100% !important;
-                background: white !important;
-                color: black !important;
+                margin: 0 !important; padding: 0 !important; width: 100% !important; background: white !important; color: black !important;
             }
-
-            /* Clean Card Look */
             .card { border: none !important; box-shadow: none !important; }
-
-            /* Force Table Borders */
             .table { width: 100% !important; border: 1px solid black !important; }
             .table td, .table th { border: 1px solid black !important; }
         }
@@ -35,8 +24,8 @@
         <div th:replace="~{fragments :: sidebar(activePage='sales')}"></div>
     </div>
 
-    <div class="main-content">
-        <div class="container-fluid">
+    <div class="main-content w-100">
+        <div class="container-fluid p-4">
 
             <div class="no-print">
                 <div th:replace="~{fragments :: topbar}"></div>
@@ -58,61 +47,66 @@
             </div>
 
             <div class="card mb-4 border-0 shadow-sm no-print">
-                <div class="card-body py-3">
-                    <form action="/sales" method="get" class="row g-3 align-items-center">
+                <div class="card-body py-3 d-flex align-items-center flex-wrap gap-3">
 
-                        <div class="col-auto">
-                            <label class="small text-muted fw-bold d-block">Quick View</label>
-                            <div class="btn-group">
-                                <a href="/sales?period=today" class="btn btn-sm btn-outline-secondary">Today</a>
-                                <a href="/sales?period=week" class="btn btn-sm btn-outline-secondary">Week</a>
-                                <a href="/sales?period=month" class="btn btn-sm btn-outline-secondary">Month</a>
-                                <a href="/sales?period=all" class="btn btn-sm btn-outline-dark">All</a>
-                            </div>
+                    <div>
+                        <label class="small text-muted fw-bold mb-1 d-block">Quick View</label>
+                        <div class="btn-group btn-group-sm">
+                            <button type="button" class="btn btn-outline-secondary" onclick="updateFilters('period', 'today')">Today</button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="updateFilters('period', 'week')">Week</button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="updateFilters('period', 'month')">Month</button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="updateFilters('period', 'all')">All</button>
                         </div>
+                    </div>
 
-                        <div class="col-auto border-start ps-3">
-                            <label class="small text-muted fw-bold d-block">Specific Date</label>
-                            <div class="input-group input-group-sm">
-                                <input type="date" name="date" class="form-control" th:value="${selectedDate}">
-                                <button type="submit" class="btn btn-dark">Go</button>
-                            </div>
-                        </div>
+                    <div class="vr mx-1"></div>
 
-                        <div class="col-auto">
-                            <label class="small fw-bold text-muted d-block">Payment Type</label>
-                            <div class="d-flex gap-1">
-                                <select name="paymentMethod" class="form-select form-select-sm" style="width: 130px;">
-                                    <option value="ALL" th:selected="${selectedPayment == 'ALL'}">All Types</option>
-                                    <option value="CASH" th:selected="${selectedPayment == 'CASH'}">Cash Only</option>
-                                    <option value="MPESA" th:selected="${selectedPayment == 'MPESA'}">M-Pesa Only</option>
-                                </select>
-                                <button type="submit" class="btn btn-sm btn-dark">Filter</button>
-                            </div>
+                    <div>
+                        <label class="small text-muted fw-bold mb-1 d-block">Specific Date</label>
+                        <div class="d-flex gap-1">
+                            <input type="date" id="specificDate" class="form-control form-control-sm">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="updateFilters('date', null)">Go</button>
                         </div>
+                    </div>
 
-                        <div class="col-auto border-start ps-3">
-                            <label class="small text-muted fw-bold d-block">Monthly Archive</label>
-                            <div class="input-group input-group-sm">
-                                <select name="month" class="form-select" style="width: auto; min-width: 100px;">
-                                    <option value="1" th:selected="${selectedMonth == 1}">January</option>
-                                    <option value="2" th:selected="${selectedMonth == 2}">February</option>
-                                    <option value="3" th:selected="${selectedMonth == 3}">March</option>
-                                    <option value="4" th:selected="${selectedMonth == 4}">April</option>
-                                    <option value="5" th:selected="${selectedMonth == 5}">May</option>
-                                    <option value="6" th:selected="${selectedMonth == 6}">June</option>
-                                    <option value="7" th:selected="${selectedMonth == 7}">July</option>
-                                    <option value="8" th:selected="${selectedMonth == 8}">August</option>
-                                    <option value="9" th:selected="${selectedMonth == 9}">September</option>
-                                    <option value="10" th:selected="${selectedMonth == 10}">October</option>
-                                    <option value="11" th:selected="${selectedMonth == 11}">November</option>
-                                    <option value="12" th:selected="${selectedMonth == 12}">December</option>
-                                </select>
-                                <input type="number" name="year" class="form-control" style="width: 70px;" th:value="${selectedYear}">
-                                <button type="submit" class="btn btn-outline-dark">Go</button>
-                            </div>
+                    <div class="vr mx-1"></div>
+
+                    <div>
+                        <label class="small text-muted fw-bold mb-1 d-block">Payment Type</label>
+                        <div class="d-flex gap-1">
+                            <select id="paymentMethod" class="form-select form-select-sm">
+                                <option value="ALL">All Types</option>
+                                <option value="CASH">Cash</option>
+                                <option value="MPESA">M-Pesa</option>
+                            </select>
+                            <button type="button" class="btn btn-warning btn-sm fw-bold text-dark" onclick="updateFilters('payment', null)">Filter</button>
                         </div>
-                    </form>
+                    </div>
+
+                    <div class="vr mx-1"></div>
+
+                    <div>
+                        <label class="small text-muted fw-bold mb-1 d-block">Monthly Archive</label>
+                        <div class="d-flex gap-1">
+                            <select id="archiveMonth" class="form-select form-select-sm" style="width: auto; min-width: 100px;">
+                                <option value="1">January</option>
+                                <option value="2">February</option>
+                                <option value="3">March</option>
+                                <option value="4">April</option>
+                                <option value="5">May</option>
+                                <option value="6">June</option>
+                                <option value="7">July</option>
+                                <option value="8">August</option>
+                                <option value="9">September</option>
+                                <option value="10">October</option>
+                                <option value="11">November</option>
+                                <option value="12">December</option>
+                            </select>
+                            <input type="number" id="archiveYear" class="form-control form-control-sm" style="width: 70px;" value="2026">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="updateFilters('month', null)">Go</button>
+                        </div>
+                    </div>
+
                 </div>
             </div>
 
@@ -148,9 +142,9 @@
                                 <span class="badge bg-light text-dark border" th:text="${sale.quantity}">1</span>
                             </td>
                             <td class="text-center">
-                                        <span th:text="${sale.paymentMethod}"
-                                              th:class="${sale.paymentMethod == 'Mpesa'} ? 'badge bg-success' : 'badge bg-secondary'">
-                                        </span>
+                                <span th:text="${sale.paymentMethod}"
+                                      th:class="${#strings.toUpperCase(sale.paymentMethod) == 'MPESA'} ? 'badge bg-success' : 'badge bg-secondary'">
+                                </span>
                             </td>
                             <td class="text-end fw-bold text-success"
                                 th:text="${#numbers.formatDecimal(sale.totalAmount, 1, 'COMMA', 2, 'POINT')}">
@@ -166,6 +160,7 @@
 </div>
 
 <script>
+    // --- EXPORT FUNCTIONS (Unchanged) ---
     function exportTableToExcel(tableID, filename = '') {
         var downloadLink;
         var dataType = 'application/vnd.ms-excel';
@@ -195,6 +190,62 @@
         fileDownload.download = 'sales_report.doc';
         fileDownload.click();
         document.body.removeChild(fileDownload);
+    }
+
+    // --- MASTER FILTER ENGINE ---
+
+    // 1. Maintain state when the page reloads
+    window.addEventListener('DOMContentLoaded', () => {
+        const params = new URLSearchParams(window.location.search);
+
+        if (params.has('paymentMethod')) {
+            document.getElementById('paymentMethod').value = params.get('paymentMethod');
+        }
+        if (params.has('date')) {
+            document.getElementById('specificDate').value = params.get('date');
+        }
+        if (params.has('month')) {
+            document.getElementById('archiveMonth').value = params.get('month');
+            document.getElementById('archiveYear').value = params.get('year') || new Date().getFullYear();
+        }
+    });
+
+    // 2. Build and execute the URL
+    function updateFilters(filterType, value) {
+        const params = new URLSearchParams(window.location.search);
+
+        // Always apply the currently selected payment method
+        const payment = document.getElementById('paymentMethod').value;
+        params.set('paymentMethod', payment);
+
+        if (filterType === 'period') {
+            params.delete('date');
+            params.delete('month');
+            params.delete('year');
+
+            if (value === 'all') {
+                params.delete('period');
+            } else {
+                params.set('period', value);
+            }
+        }
+        else if (filterType === 'date') {
+            params.delete('period');
+            params.delete('month');
+            params.delete('year');
+            const dateVal = document.getElementById('specificDate').value;
+            if (dateVal) params.set('date', dateVal);
+        }
+        else if (filterType === 'month') {
+            params.delete('period');
+            params.delete('date');
+            const monthVal = document.getElementById('archiveMonth').value;
+            const yearVal = document.getElementById('archiveYear').value;
+            params.set('month', monthVal);
+            params.set('year', yearVal);
+        }
+
+        window.location.href = '/sales?' + params.toString();
     }
 </script>
 </body>

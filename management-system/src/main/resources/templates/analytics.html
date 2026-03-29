@@ -36,16 +36,14 @@
                     <h2 class="fw-bold">📊 Financial Review</h2>
                     <p class="text-muted mb-0">Performance Overview</p>
                 </div>
-
                 <div class="btn-group shadow-sm">
-                    <a href="/analytics?period=daily" class="btn btn-outline-secondary filter-btn" th:classappend="${period == 'daily'} ? 'active'">Daily</a>
-                    <a href="/analytics?period=weekly" class="btn btn-outline-secondary filter-btn" th:classappend="${period == 'weekly'} ? 'active'">Weekly</a>
-                    <a href="/analytics?period=monthly" class="btn btn-outline-secondary filter-btn" th:classappend="${period == 'monthly'} ? 'active'">Monthly</a>
-                    <a href="/analytics?period=annually" class="btn btn-outline-secondary filter-btn" th:classappend="${period == 'annually'} ? 'active'">Annually</a>
-                    <a href="/analytics?period=all" class="btn btn-outline-secondary filter-btn" th:classappend="${period == 'all'} ? 'active'">All Time</a>
+                    <a href="/analytics?period=daily" class="btn btn-outline-secondary btn-sm filter-btn" th:classappend="${period == 'daily'} ? 'active'">Daily</a>
+                    <a href="/analytics?period=weekly" class="btn btn-outline-secondary btn-sm filter-btn" th:classappend="${period == 'weekly'} ? 'active'">Weekly</a>
+                    <a href="/analytics?period=monthly" class="btn btn-outline-secondary btn-sm filter-btn" th:classappend="${period == 'monthly'} ? 'active'">Monthly</a>
+                    <a href="/analytics?period=annually" class="btn btn-outline-secondary btn-sm filter-btn" th:classappend="${period == 'annually'} ? 'active'">Annually</a>
+                    <a href="/analytics?period=all" class="btn btn-outline-secondary btn-sm filter-btn" th:classappend="${period == 'all'} ? 'active'">All Time</a>
                 </div>
-
-                <button onclick="exportDocx()" class="btn btn-primary fw-bold shadow-sm"><i class="fas fa-file-word"></i> Download Report</button>
+                <button onclick="exportDocx()" class="btn btn-primary fw-bold shadow-sm"><i class="fas fa-file-word me-2"></i>Download Report</button>
             </div>
 
             <div class="row g-4 mb-4">
@@ -66,8 +64,10 @@
             <div class="row g-4 mb-4">
                 <div class="col-md-8">
                     <div class="card shadow-sm border-0 h-100">
-                        <div class="card-header bg-white fw-bold border-0">3. Weekly Customer Trend (Day of Week)</div>
-                        <div class="card-body"><div class="chart-container"><canvas id="dayChart"></canvas></div></div>
+                        <div class="card-header bg-white fw-bold border-0">
+                            <span th:text="${trendTitle}">Sales Trend</span>
+                        </div>
+                        <div class="card-body"><div class="chart-container"><canvas id="trendChart"></canvas></div></div>
                     </div>
                 </div>
                 <div class="col-md-4">
@@ -77,7 +77,6 @@
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
 </div>

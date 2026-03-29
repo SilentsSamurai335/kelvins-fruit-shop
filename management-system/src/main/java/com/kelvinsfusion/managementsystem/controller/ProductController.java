@@ -507,100 +507,124 @@ public class ProductController {
         if (!"admin".equals(principal.getName())) return "redirect:/";
 
         LocalDate today = LocalDate.now();
+        LocalDateTime startDateTime;
+        LocalDateTime endDateTime = LocalDateTime.now();
+        String trendTitle = "Sales Trend";
 
-        // 1. DETERMINE DATE RANGE
-        LocalDate start = LocalDate.of(today.getYear(), 1, 1);
-        LocalDate end = LocalDate.of(today.getYear(), 12, 31);
+        // 1. CONFIGURE DATES & LABELS
+        // Use LinkedHashMap to keep the order (e.g., Jan, Feb...)
+        Map<String, Double> trendMap = new LinkedHashMap<>();
 
-        if ("daily".equals(period)) start = today.minusDays(29);
-        else if ("weekly".equals(period)) start = today.minusWeeks(11);
-        else if ("annually".equals(period)) start = today.minusYears(4).withDayOfYear(1);
+        if ("daily".equals(period)) {
+            startDateTime = today.atStartOfDay();
+            endDateTime = today.atTime(23, 59, 59);
+            trendTitle = "Today's Hourly Performance";
+            for (int i = 8; i <= 22; i++) trendMap.put(String.format("%02d:00", i), 0.0);
+        }
+        else if ("weekly".equals(period)) {
+            // Start from Monday
+            startDateTime = today.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY)).atStartOfDay();
+            trendTitle = "This Week (Daily)";
+            String[] days = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
+            for (String d : days) trendMap.put(d, 0.0);
+        }
+        else if ("monthly".equals(period)) {
+            startDateTime = today.withDayOfMonth(1).atStartOfDay();
+            trendTitle = "This Month (Weekly)";
+            for (int i = 1; i <= 5; i++) trendMap.put("Week " + i, 0.0);
+        }
+        else if ("annually".equals(period)) {
+            startDateTime = today.withDayOfYear(1).atStartOfDay();
+            trendTitle = "This Year (Monthly)";
+            String[] months = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+            for (String m : months) trendMap.put(m, 0.0);
+        }
+        else {
+            // ALL TIME (Last 5 Years)
+            startDateTime = today.minusYears(4).withDayOfYear(1).atStartOfDay();
+            trendTitle = "All Time (Yearly)";
+            int currentYear = today.getYear();
+            for (int i = currentYear - 4; i <= currentYear; i++) {
+                trendMap.put(String.valueOf(i), 0.0);
+            }
+        }
 
         // 2. FETCH DATA
-        List<Sale> sales = saleRepository.findBySaleDateTimeBetween(start.atStartOfDay(), end.atTime(23, 59, 59));
-        List<Expense> expenses = expenseRepository.findByDateBetween(start, end);
+        List<Sale> sales = saleRepository.findBySaleDateTimeBetween(startDateTime, endDateTime);
+        List<Expense> expenses = expenseRepository.findAll();
 
-        // 3. PROCESS SALES DATA
+        // 3. AGGREGATE
         double totalRevenue = 0;
         Map<String, Double> catRevenue = new HashMap<>();
         Map<String, Double> paymentMap = new HashMap<>();
-        double[] weeklyTrend = new double[7]; // Mon=0, Sun=6
-        String[] daysOfWeek = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
-
-        // Variables for Executive Summary
-        Map<String, Double> monthlyTotals = new HashMap<>();
 
         for (Sale s : sales) {
             double amt = s.getTotalAmount();
             totalRevenue += amt;
 
-            // Category Logic
+            // Categories
             String item = (s.getItemsSold() != null) ? s.getItemsSold().toLowerCase() : "";
             String cat = "Other";
-            if (item.contains("juice") || item.contains("passion")) cat = "Juices";
+            if (item.contains("juice") || item.contains("passion") || item.contains("mango")) cat = "Juices";
             else if (item.contains("uji")) cat = "Uji";
             else if (item.contains("cupcake") || item.contains("cake")) cat = "Cupcakes";
-            else if (item.contains("cookie") || item.contains("biscuit")) cat = "Cookies";
+            else if (item.contains("cookie")) cat = "Cookies";
             catRevenue.put(cat, catRevenue.getOrDefault(cat, 0.0) + amt);
 
-            // Payment Logic
+            // Payments
             paymentMap.put(s.getPaymentMethod(), paymentMap.getOrDefault(s.getPaymentMethod(), 0.0) + amt);
 
-            // Day of Week Logic
-            int dayIdx = s.getSaleDateTime().getDayOfWeek().getValue() - 1; // 1(Mon)-7(Sun) -> 0-6
-            weeklyTrend[dayIdx] += amt;
+            // Trend Logic
+            LocalDateTime time = s.getSaleDateTime();
+            String key = "";
 
-            // Monthly Totals for Summary
-            String month = s.getSaleDateTime().getMonth().name();
-            monthlyTotals.put(month, monthlyTotals.getOrDefault(month, 0.0) + amt);
+            if ("daily".equals(period)) {
+                int h = time.getHour();
+                if(h >= 8 && h <= 22) key = String.format("%02d:00", h);
+            }
+            else if ("weekly".equals(period)) {
+                String d = time.getDayOfWeek().name(); // MONDAY
+                key = d.substring(0, 1) + d.substring(1, 3).toLowerCase(); // Mon
+            }
+            else if ("monthly".equals(period)) {
+                int day = time.getDayOfMonth();
+                int week = (day - 1) / 7 + 1;
+                if(week > 5) week = 5;
+                key = "Week " + week;
+            }
+            else if ("annually".equals(period)) {
+                String m = time.getMonth().name();
+                key = m.substring(0, 1) + m.substring(1, 3).toLowerCase(); // Jan
+            }
+            else { // All Time
+                key = String.valueOf(time.getYear());
+            }
+
+            if (trendMap.containsKey(key)) {
+                trendMap.put(key, trendMap.getOrDefault(key, 0.0) + amt);
+            }
         }
 
-        // 4. PROCESS EXPENSE DATA (For Pie Chart)
+        // Expenses
         Map<String, Double> expMap = new HashMap<>();
         for(Expense e : expenses) {
-            String cat = e.getCategory();
-            expMap.put(cat, expMap.getOrDefault(cat, 0.0) + e.getAmount());
-        }
-
-        // 5. CALCULATE EXECUTIVE SUMMARY STATS
-        String bestMonth = "N/A";
-        double bestMonthAmt = 0;
-        String worstMonth = "N/A";
-        double worstMonthAmt = Double.MAX_VALUE;
-
-        for(Map.Entry<String, Double> entry : monthlyTotals.entrySet()) {
-            if(entry.getValue() > bestMonthAmt) {
-                bestMonthAmt = entry.getValue();
-                bestMonth = entry.getKey();
-            }
-            if(entry.getValue() < worstMonthAmt) {
-                worstMonthAmt = entry.getValue();
-                worstMonth = entry.getKey();
+            // Rough date filter for expenses to match period context
+            if(!e.getDate().isBefore(startDateTime.toLocalDate())) {
+                expMap.put(e.getCategory(), expMap.getOrDefault(e.getCategory(), 0.0) + e.getAmount());
             }
         }
-        if(monthlyTotals.isEmpty()) worstMonthAmt = 0;
 
-        // 6. PASS TO MODEL
         model.addAttribute("totalRevenue", totalRevenue);
         model.addAttribute("period", period);
-
-        // Charts
+        model.addAttribute("trendTitle", trendTitle);
+        model.addAttribute("trendLabels", trendMap.keySet());
+        model.addAttribute("trendData", trendMap.values());
         model.addAttribute("catLabels", catRevenue.keySet());
         model.addAttribute("catData", catRevenue.values());
         model.addAttribute("payLabels", paymentMap.keySet());
         model.addAttribute("payData", paymentMap.values());
-
-        // New Charts
         model.addAttribute("expLabels", expMap.keySet());
         model.addAttribute("expData", expMap.values());
-        model.addAttribute("dayLabels", daysOfWeek);
-        model.addAttribute("dayData", weeklyTrend);
-
-        // Summary Stats
-        model.addAttribute("bestMonth", bestMonth);
-        model.addAttribute("bestMonthAmt", bestMonthAmt);
-        model.addAttribute("worstMonth", worstMonth);
-        model.addAttribute("worstMonthAmt", worstMonthAmt);
 
         return "analytics";
     }

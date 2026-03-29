@@ -1,6 +1,28 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.w3.org/1999/xhtml">
 <head>
+    <style>
+        .preload * {
+            transition: none !important;
+        }
+    </style>
+
+    <script>
+        // Apply theme instantly
+        if (localStorage.getItem('theme') === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+
+        // Add the 'preload' class to stop the toggle switch from animating
+        document.documentElement.classList.add('preload');
+
+        // Remove the 'preload' class after the browser finishes painting
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                document.documentElement.classList.remove('preload');
+            }, 100);
+        });
+    </script>
     <th:block th:fragment="styles">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -130,6 +152,40 @@
             [data-theme="dark"] .table-bordered .text-success { color: #2ecc71 !important; }
             [data-theme="dark"] .table-bordered .text-danger { color: #ff6b6b !important; }
             [data-theme="dark"] tfoot tr { background-color: var(--card-bg) !important; color: white; }
+            /* --- GLOBAL DARK MODE FIXES --- */
+
+            /* 1. Fix 'Outline Dark' Buttons (Print, Archive, Filters) to be White in Dark Mode */
+            [data-theme="dark"] .btn-outline-dark {
+                color: #f8f9fa !important;
+                border-color: #f8f9fa !important;
+            }
+            [data-theme="dark"] .btn-outline-dark:hover,
+            [data-theme="dark"] .btn-outline-dark.active {
+                background-color: #f8f9fa !important;
+                color: black !important;
+            }
+
+            /* 2. Fix Modal (Mixture Form) Visibility */
+            [data-theme="dark"] .modal-content {
+                background-color: var(--card-bg);
+                color: var(--text-color);
+                border: 1px solid var(--border-color);
+            }
+            [data-theme="dark"] .modal-header {
+                border-bottom: 1px solid var(--border-color);
+            }
+            [data-theme="dark"] .modal-footer {
+                border-top: 1px solid var(--border-color);
+            }
+            /* Make the 'X' close button white in dark mode */
+            [data-theme="dark"] .btn-close {
+                filter: invert(1) grayscale(100%) brightness(200%);
+            }
+
+            /* 3. Fix Form Labels in Modals */
+            [data-theme="dark"] .form-label {
+                color: var(--text-color);
+            }
         </style>
     </th:block>
 </head>
