@@ -167,6 +167,19 @@ public class ProductController {
         return "redirect:/products";
     }
 
+    @GetMapping("/inventory/delete/{id}")
+    public String deleteProduct(@PathVariable Long id, Principal principal) {
+        // 1. Security Check: Only Kelvin has the authority to delete a product
+        if (principal != null && "kelvin".equals(principal.getName())) {
+            // 2. Delete the item from the database
+            productRepository.deleteById(id);
+        }
+
+        // 3. Send you right back to the inventory page
+        // (Change this to "redirect:/products" if that is your actual URL)
+        return "redirect:/inventory";
+    }
+
     @PostMapping("/sell-custom")
     public String sellCustom(@RequestParam("mixName") String mixName,
                              @RequestParam(value = "amount", defaultValue = "0.0") double amount,

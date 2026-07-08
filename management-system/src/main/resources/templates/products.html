@@ -59,6 +59,13 @@
                                                 </button>
                                             </form>
                                         </div>
+
+                                        <a th:href="@{/inventory/delete/{id}(id=${product.id})}"
+                                           class="btn btn-sm btn-outline-danger mt-2"
+                                           th:if="${#authentication.name == 'kelvin'}"
+                                           onclick="return confirm('WARNING: Are you sure you want to permanently delete this product from the menu?');">
+                                            <i class="fas fa-trash-alt"></i> Remove Item
+                                        </a>
                                     </td>
 
                                     <td>
