@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sales History - Fruity Fusion</title>
     <th:block th:replace="~{fragments :: styles}"></th:block>
 
@@ -130,6 +131,7 @@
                             <th class="text-center">Qty</th>
                             <th class="text-center">Method</th>
                             <th class="text-end">Amount</th>
+                            <th class="text-center no-print" th:if="${#authentication.name == 'kelvin'}">Action</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -142,12 +144,19 @@
                                 <span class="badge bg-light text-dark border" th:text="${sale.quantity}">1</span>
                             </td>
                             <td class="text-center">
-                                <span th:text="${sale.paymentMethod}"
-                                      th:class="${#strings.toUpperCase(sale.paymentMethod) == 'MPESA'} ? 'badge bg-success' : 'badge bg-secondary'">
-                                </span>
+            <span th:text="${sale.paymentMethod}"
+                  th:class="${#strings.toUpperCase(sale.paymentMethod) == 'MPESA'} ? 'badge bg-success' : 'badge bg-secondary'">
+            </span>
                             </td>
                             <td class="text-end fw-bold text-success"
                                 th:text="${#numbers.formatDecimal(sale.totalAmount, 1, 'COMMA', 2, 'POINT')}">
+                            </td>
+                            <td class="text-center no-print" th:if="${#authentication.name == 'kelvin'}">
+                                <a th:href="@{/sales/delete/{id}(id=${sale.id})}"
+                                   class="btn btn-sm btn-outline-danger py-0 px-2"
+                                   onclick="return confirm('Are you sure you want to void this sale?');">
+                                    <i class="fas fa-trash-alt"></i> Void
+                                </a>
                             </td>
                         </tr>
                         </tbody>

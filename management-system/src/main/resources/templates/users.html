@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Staff - Fruity Fusion</title>
     <th:block th:replace="~{fragments :: styles}"></th:block>
 
@@ -100,9 +101,11 @@
                                 <a th:href="@{/edit-user/{id}(id=${user.id})}"
                                    class="btn btn-sm btn-outline-primary"
                                    style="margin-right: 5px;">Edit</a>
-                                <a th:if="${user.role != 'ADMIN'}"
-                                   th:href="@{/delete-user/{id}(id=${user.id})}"
-                                   class="btn btn-sm btn-outline-danger">Delete</a>
+                                <a th:href="@{/delete-user/{id}(id=${user.id})}"
+                                   class="btn btn-sm btn-danger"
+                                   th:if="${user.username != 'kelvin'}">
+                                    Delete
+                                </a>
                             </td>
                         </tr>
                         </tbody>

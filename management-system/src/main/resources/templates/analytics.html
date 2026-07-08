@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Financial Review - Kelvin's Fruity Fusion</title>
     <th:block th:replace="~{fragments :: styles}"></th:block>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -148,7 +149,7 @@
     });
 
     // CHART 3: DAY OF WEEK LINE
-    const c3 = new Chart(document.getElementById('dayChart'), {
+    const c3 = new Chart(document.getElementById('trendChart'), {
         type: 'line',
         data: {
             labels: dayLabels,

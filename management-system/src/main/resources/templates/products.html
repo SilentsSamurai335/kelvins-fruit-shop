@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.w3.org/1999/xhtml">
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>POS - Fruity Fusion</title>
     <th:block th:replace="~{fragments :: styles}"></th:block>
 </head>
@@ -48,6 +49,16 @@
                                             <div class="small" th:classappend="${product.stockSmall < 5} ? 'text-danger' : 'text-muted'"
                                                  th:text="'Stock: ' + ${product.stockSmall}"></div>
                                         </div>
+
+                                        <div th:if="${product.category == 'Snack' and #authentication.name == 'kelvin'}" class="mt-2">
+                                            <form th:action="@{/add-stock}" method="post" class="d-flex gap-2">
+                                                <input type="hidden" name="productId" th:value="${product.id}">
+                                                <input type="number" name="quantity" class="form-control form-control-sm" placeholder="Qty" min="1" required style="width: 70px;">
+                                                <button type="submit" class="btn btn-sm btn-success fw-bold">
+                                                    <i class="fas fa-plus"></i> Stock
+                                                </button>
+                                            </form>
+                                        </div>
                                     </td>
 
                                     <td>
@@ -55,6 +66,7 @@
                                             <div class="d-flex gap-1">
                                                 <select class="form-select form-select-sm" style="width: 80px;" th:id="'size-' + ${product.id}">
                                                     <option value="250ml">250ml</option>
+                                                    <option value="300ml">300ml</option>
                                                     <option value="500ml">500ml</option>
                                                     <option value="Custom" class="fw-bold text-primary">Custom?</option>
                                                 </select>

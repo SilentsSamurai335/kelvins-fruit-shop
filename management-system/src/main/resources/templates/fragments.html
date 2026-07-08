@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.w3.org/1999/xhtml">
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         .preload * {
             transition: none !important;
@@ -185,6 +186,56 @@
             /* 3. Fix Form Labels in Modals */
             [data-theme="dark"] .form-label {
                 color: var(--text-color);
+            }
+
+            /* --- MOBILE RESPONSIVE FIXES --- */
+            @media (max-width: 768px) {
+                /* 1. Shrink the sidebar and strictly cut off any overflowing text */
+                .sidebar {
+                    width: 70px !important;
+                    min-width: 70px !important;
+                    overflow-x: hidden !important;
+                }
+
+                /* 2. Hide the text labels and the logo text */
+                .sidebar .nav-link span,
+                .sidebar .navbar-brand span,
+                .sidebar .sidebar-heading {
+                    display: none !important;
+                }
+
+                /* 3. Strip all default padding and force exact centering for the logo */
+                .sidebar .navbar-brand {
+                    padding: 15px 0 !important;
+                    margin: 0 !important;
+                    justify-content: center !important;
+                    width: 100% !important;
+                }
+
+                /* 4. Strip default padding from links and center the icons perfectly */
+                .sidebar .nav-item,
+                .sidebar .nav-link {
+                    padding-left: 0 !important;
+                    padding-right: 0 !important;
+                    margin: 0 !important;
+                    text-align: center !important;
+                    justify-content: center !important;
+                    width: 100% !important;
+                }
+
+                /* 5. Remove the right-margin on icons so they sit in the dead center */
+                .sidebar .nav-link i {
+                    margin: 0 !important;
+                    font-size: 1.3rem !important;
+                }
+
+                /* 6. Keep tables swipeable so they don't stretch the screen */
+                table {
+                    display: block;
+                    width: 100%;
+                    overflow-x: auto;
+                    white-space: nowrap;
+                }
             }
         </style>
     </th:block>

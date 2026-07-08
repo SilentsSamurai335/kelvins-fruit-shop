@@ -88,6 +88,31 @@ public class ProductController {
         return "redirect:/products";
     }
 
+    @PostMapping("/add-stock")
+    public String addStock(@RequestParam Long productId,
+                           @RequestParam int quantity,
+                           Principal principal) {
+
+        // 1. Security Check
+        if (principal == null || !"kelvin".equals(principal.getName())) {
+            return "redirect:/";
+        }
+
+        // 2. Find the product
+        Product product = productRepository.findById(productId).orElse(null);
+
+        // 3. Update the stock using the EXACT methods from your screenshot
+        if (product != null) {
+            // We use getStockSmall() and setStockSmall() for standard snack inventory
+            product.setStockSmall(product.getStockSmall() + quantity);
+
+            productRepository.save(product);
+        }
+
+        // 4. Redirect back to POS
+        return "redirect:/products";
+    }
+
     @GetMapping("/edit/{id}")
     public String showEditForm(@PathVariable("id") Long id, Model model) {
         Product product = productRepository.findById(id).orElse(null);
@@ -207,6 +232,15 @@ public class ProductController {
         model.addAttribute("selectedPayment", paymentMethod);
 
         return "sales";
+    }
+
+    @GetMapping("/sales/delete/{id}")
+    public String deleteSale(@PathVariable Long id, Principal principal) {
+        // Double-check security: only Kelvin can do this
+        if ("kelvin".equals(principal.getName())) {
+            saleRepository.deleteById(id);
+        }
+        return "redirect:/sales";
     }
 
     // --- EXPENSES ---
@@ -365,25 +399,26 @@ public class ProductController {
         List<TeamLog> chats = new ArrayList<>();
         String recipientForForm = "";
 
-        // Admin Logic
-        if ("admin".equals(currentUser)) {
+        // Admin Logic (Now specifically looking for 'kelvin')
+        if ("kelvin".equals(currentUser)) {
             List<User> staffList = userRepository.findAll();
-            staffList.removeIf(u -> "admin".equals(u.getUsername()));
+            // Remove yourself from the staff list so you don't chat with yourself
+            staffList.removeIf(u -> "kelvin".equals(u.getUsername()));
             model.addAttribute("staffList", staffList);
 
             if (staffUsername != null && !staffUsername.isEmpty()) {
-                chats = teamLogRepository.findChatHistory("admin", staffUsername);
+                chats = teamLogRepository.findChatHistory("kelvin", staffUsername);
                 model.addAttribute("chatTarget", staffUsername);
                 recipientForForm = staffUsername;
             } else {
                 model.addAttribute("chatTarget", "Select a Staff Member");
             }
         }
-        // Staff Logic
+        // Staff Logic (Staff send messages directly to 'kelvin')
         else {
-            chats = teamLogRepository.findChatHistory(currentUser, "admin");
-            model.addAttribute("chatTarget", "Manager (Admin)");
-            recipientForForm = "admin";
+            chats = teamLogRepository.findChatHistory(currentUser, "kelvin");
+            model.addAttribute("chatTarget", "Manager (Kelvin)");
+            recipientForForm = "kelvin";
         }
 
         model.addAttribute("chats", chats);
@@ -504,7 +539,7 @@ public class ProductController {
     @GetMapping("/analytics")
     public String showAnalytics(@RequestParam(value = "period", defaultValue = "monthly") String period,
                                 Model model, Principal principal) {
-        if (!"admin".equals(principal.getName())) return "redirect:/";
+        if (principal == null || !"kelvin".equals(principal.getName())) return "redirect:/";
 
         LocalDate today = LocalDate.now();
         LocalDateTime startDateTime;
@@ -617,8 +652,8 @@ public class ProductController {
         model.addAttribute("totalRevenue", totalRevenue);
         model.addAttribute("period", period);
         model.addAttribute("trendTitle", trendTitle);
-        model.addAttribute("trendLabels", trendMap.keySet());
-        model.addAttribute("trendData", trendMap.values());
+        model.addAttribute("dayLabels", trendMap.keySet());
+        model.addAttribute("dayData", trendMap.values());
         model.addAttribute("catLabels", catRevenue.keySet());
         model.addAttribute("catData", catRevenue.values());
         model.addAttribute("payLabels", paymentMap.keySet());
