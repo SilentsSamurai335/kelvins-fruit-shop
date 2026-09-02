@@ -150,6 +150,19 @@
                                 COMPLETE SALE
                             </button>
                         </div>
+
+                        <!-- Visible ONLY to Admins -->
+                        <div class="mb-3" sec:authorize="hasRole('ADMIN')">
+                            <label for="manualDate" class="form-label fw-bold">Transaction Date</label>
+                            <input type="date" id="manualDate" name="manualDate" class="form-control"
+                                   th:max="${#dates.format(#dates.createNow(), 'yyyy-MM-dd')}"
+                                   th:value="${#dates.format(#dates.createNow(), 'yyyy-MM-dd')}">
+                        </div>
+
+                        <!-- Fallback for cashiers -->
+                        <input type="hidden" name="manualDate"
+                               th:value="${#dates.format(#dates.createNow(), 'yyyy-MM-dd')}"
+                               sec:authorize="!hasRole('ADMIN')">
                     </div>
                 </div>
             </div>
@@ -382,6 +395,10 @@
         let method = document.getElementById("paymentMethod").value;
         let total = parseFloat(document.getElementById("cartTotal").innerText);
 
+        // 1. You grabbed the date perfectly here!
+        let manualDateInput = document.getElementById('manualDate');
+        let manualDate = manualDateInput ? manualDateInput.value : '';
+
         payBtn.innerText = "Recording Sale...";
         payBtn.disabled = true;
 
@@ -392,7 +409,8 @@
                 body: JSON.stringify({
                     paymentMethod: method,
                     amount: total,
-                    items: cart
+                    items: cart,
+                    manualDate: manualDate // 2. ADD THIS LINE to send it to Java!
                 })
             });
 

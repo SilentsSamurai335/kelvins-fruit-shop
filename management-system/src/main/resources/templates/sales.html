@@ -108,6 +108,14 @@
                         </div>
                     </div>
 
+                    <form th:action="@{/sales}" method="get" class="d-flex">
+                        <input type="hidden" name="period" th:value="${param.period}">
+                        <input type="hidden" name="category" th:value="${param.category}">
+
+                        <input type="text" name="search" class="form-control me-2" placeholder="Search sales...">
+                        <button type="submit" class="btn btn-warning">Search</button>
+                    </form>
+
                 </div>
             </div>
 

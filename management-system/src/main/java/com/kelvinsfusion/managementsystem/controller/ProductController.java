@@ -6,9 +6,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.security.Principal;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.LocalDateTime;
 import java.time.Month;
 import java.util.*;
@@ -133,12 +136,27 @@ public class ProductController {
                               @RequestParam(value = "qty", defaultValue = "1") int qty,
                               @RequestParam(value = "payment", defaultValue = "Cash") String payment,
                               @RequestParam(value = "customPrice", required = false) Double customPrice,
-                              @RequestParam(value = "customSizeName", required = false) String customSizeName) {
+                              @RequestParam(value = "customSizeName", required = false) String customSizeName,
+                              @RequestParam(value = "manualDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate manualDate,
+                              Authentication authentication) {
 
         Product product = productRepository.findById(id).orElse(null);
         if (product != null) {
             Sale newSale = new Sale();
-            newSale.setSaleDateTime(LocalDateTime.now());
+
+            // --- NEW ADMIN DATE LOGIC ---
+            boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+                    .anyMatch(r -> r.getAuthority().equals("ROLE_ADMIN"));
+
+            if (isAdmin && manualDate != null && !manualDate.isAfter(LocalDate.now())) {
+                // Combine the chosen date with the current time
+                newSale.setSaleDateTime(manualDate.atTime(LocalTime.now()));
+            } else {
+                // Fallback to exactly right now for cashiers or invalid future dates
+                newSale.setSaleDateTime(LocalDateTime.now());
+            }
+            // ----------------------------
+
             newSale.setQuantity(qty);
             newSale.setPaymentMethod(payment);
 
@@ -179,7 +197,7 @@ public class ProductController {
         // (Change this to "redirect:/products" if that is your actual URL)
         return "redirect:/inventory";
     }
-
+ 
     @PostMapping("/sell-custom")
     public String sellCustom(@RequestParam("mixName") String mixName,
                              @RequestParam(value = "amount", defaultValue = "0.0") double amount,
@@ -201,6 +219,7 @@ public class ProductController {
                             @RequestParam(value = "year", required = false) Integer year,
                             @RequestParam(value = "date", required = false) java.time.LocalDate specificDate,
                             @RequestParam(value = "paymentMethod", required = false, defaultValue = "ALL") String paymentMethod,
+                            @RequestParam(value = "search", required = false) String search,
                             Model model) {
 
         LocalDateTime now = LocalDateTime.now();
@@ -235,6 +254,14 @@ public class ProductController {
             title += " (" + paymentMethod + ")";
         }
 
+        if (search != null && !search.trim().isEmpty()) {
+            String keyword = search.toLowerCase();
+            sales = sales.stream()
+                    .filter(s -> (s.getItemsSold() != null && s.getItemsSold().toLowerCase().contains(keyword)) ||
+                            (s.getPhoneNumber() != null && s.getPhoneNumber().contains(keyword)))
+                    .toList();
+        }
+
         double totalRevenue = sales.stream().mapToDouble(Sale::getTotalAmount).sum();
         model.addAttribute("listSales", sales);
         model.addAttribute("totalRevenue", totalRevenue);
@@ -243,6 +270,7 @@ public class ProductController {
         model.addAttribute("selectedMonth", (month != null) ? month : now.getMonthValue());
         model.addAttribute("selectedYear", (year != null) ? year : now.getYear());
         model.addAttribute("selectedPayment", paymentMethod);
+        model.addAttribute("searchKeyword", search);
 
         return "sales";
     }
@@ -262,6 +290,7 @@ public class ProductController {
                                @RequestParam(value = "month", required = false) Integer month,
                                @RequestParam(value = "year", required = false) Integer year,
                                @RequestParam(value = "category", required = false) String category,
+                               @RequestParam(value = "search", required = false) String search,
                                Model model) {
         LocalDate now = LocalDate.now();
         LocalDate start = now.minusYears(100);
@@ -293,6 +322,15 @@ public class ProductController {
             }
         }
 
+        //THE NEW SEARCH LOGIC
+        if (search != null && !search.trim().isEmpty()) {
+            String keyword = search.toLowerCase();
+            expenses = expenses.stream()
+                    .filter(e -> (e.getItemName() != null && e.getItemName().toLowerCase().contains(keyword)) ||
+                            (e.getCategory() != null && e.getCategory().toLowerCase().contains(keyword)))
+                    .toList();
+        }
+
         double total = expenses.stream().mapToDouble(Expense::getAmount).sum();
         model.addAttribute("listExpenses", expenses);
         model.addAttribute("newExpense", new Expense());
@@ -300,13 +338,29 @@ public class ProductController {
         model.addAttribute("periodTitle", title);
         model.addAttribute("selectedMonth", (month != null) ? month : now.getMonthValue());
         model.addAttribute("selectedYear", (year != null) ? year : now.getYear());
+        model.addAttribute("searchKeyword", search);
 
         return "expenses";
     }
 
     @PostMapping("/save-expense")
-    public String saveExpense(Expense expense) {
-        if (expense.getDate() == null) expense.setDate(LocalDate.now());
+    public String saveExpense(@ModelAttribute Expense expense,
+                              @RequestParam(value = "manualDate", required = false)
+                              @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate manualDate,
+                              Authentication authentication) {
+
+        // 1. SAFELY check for both variations of the Admin role
+        boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(r -> r.getAuthority().equals("ROLE_ADMIN") || r.getAuthority().equals("ADMIN"));
+
+        // 2. If Admin and date is valid, use the manual date.
+        if (isAdmin && manualDate != null && !manualDate.isAfter(LocalDate.now())) {
+            expense.setDate(manualDate);
+        } else {
+            // 3. If cashier, or future date, default to today
+            expense.setDate(LocalDate.now());
+        }
+
         expenseRepository.save(expense);
         return "redirect:/expenses";
     }
@@ -325,6 +379,7 @@ public class ProductController {
         // 1. REVENUE CALCULATIONS
         List<Sale> sales = saleRepository.findAll();
         double juiceCash = 0, juiceMpesa = 0;
+        double coffeeCash = 0, coffeeMpesa = 0;
         double ujiCash = 0, ujiMpesa = 0;
         double cakeCash = 0, cakeMpesa = 0;
         double cookCash = 0, cookMpesa = 0;
@@ -341,6 +396,9 @@ public class ProductController {
 
                     if (item.contains("uji")) {
                         if (isMp) ujiMpesa += amt; else ujiCash += amt;
+                    }
+                    else if (item.contains("black coffee") || item.contains("white coffee")) {
+                        if (isMp) coffeeMpesa += amt; else coffeeCash += amt;
                     }
                     else if (item.contains("cupcake") || item.contains("cake")) {
                         if (isMp) cakeMpesa += amt; else cakeCash += amt;
@@ -360,21 +418,22 @@ public class ProductController {
                 }
             }
         }
-        double totalSales = juiceCash + juiceMpesa + ujiCash + ujiMpesa + cakeCash + cakeMpesa + cookCash + cookMpesa + spiceCash + spiceMpesa + snackCash + snackMpesa;
+        double totalSales = juiceCash + juiceMpesa + coffeeCash + coffeeMpesa + ujiCash + ujiMpesa + cakeCash + cakeMpesa + cookCash + cookMpesa + spiceCash + spiceMpesa + snackCash + snackMpesa;
 
         // 2. EXPENSE CALCULATIONS
         List<Expense> exps = expenseRepository.findByDateBetween(start, end);
-        List<Expense> cJuice = new ArrayList<>(), cUji = new ArrayList<>(), cShared = new ArrayList<>(), eOps = new ArrayList<>();
+        List<Expense> cJuice = new ArrayList<>(), cCoffee = new ArrayList<>(), cUji = new ArrayList<>(), cShared = new ArrayList<>(), eOps = new ArrayList<>();
 
         for (Expense e : exps) {
             String c = (e.getCategory() != null) ? e.getCategory().trim() : "Other";
             if ("Juice Ingredients".equalsIgnoreCase(c)) cJuice.add(e);
             else if ("Uji Ingredients".equalsIgnoreCase(c)) cUji.add(e);
+            else if ("Coffee Ingredients".equalsIgnoreCase(c)) cCoffee.add(e);
             else if ("Sugar".equalsIgnoreCase(c) || "Spices".equalsIgnoreCase(c) || "Shared".equalsIgnoreCase(c)) cShared.add(e);
             else eOps.add(e);
         }
 
-        double tCogs = cJuice.stream().mapToDouble(Expense::getAmount).sum() + cUji.stream().mapToDouble(Expense::getAmount).sum() + cShared.stream().mapToDouble(Expense::getAmount).sum();
+        double tCogs = cJuice.stream().mapToDouble(Expense::getAmount).sum() + cCoffee.stream().mapToDouble(Expense::getAmount).sum() + cUji.stream().mapToDouble(Expense::getAmount).sum() + cShared.stream().mapToDouble(Expense::getAmount).sum();
         double tOps = eOps.stream().mapToDouble(Expense::getAmount).sum();
         double gross = totalSales - tCogs;
         double net = gross - tOps;
@@ -382,12 +441,13 @@ public class ProductController {
         model.addAttribute("periodTitle", Month.of(curMonth).name() + " " + curYear);
         model.addAttribute("juiceCash", juiceCash); model.addAttribute("juiceMpesa", juiceMpesa);
         model.addAttribute("ujiCash", ujiCash); model.addAttribute("ujiMpesa", ujiMpesa);
+        model.addAttribute("coffeeCash", coffeeCash); model.addAttribute("coffeeMpesa", coffeeMpesa);
         model.addAttribute("cakeCash", cakeCash); model.addAttribute("cakeMpesa", cakeMpesa);
         model.addAttribute("cookCash", cookCash); model.addAttribute("cookMpesa", cookMpesa);
         model.addAttribute("spiceCash", spiceCash); model.addAttribute("spiceMpesa", spiceMpesa);
         model.addAttribute("snackCash", snackCash); model.addAttribute("snackMpesa", snackMpesa);
         model.addAttribute("totalSales", totalSales);
-        model.addAttribute("cogsJuice", cJuice); model.addAttribute("cogsUji", cUji); model.addAttribute("cogsShared", cShared);
+        model.addAttribute("cogsJuice", cJuice); model.addAttribute("cogsUji", cUji); model.addAttribute("cogsCoffee", cCoffee) ; model.addAttribute("cogsShared", cShared);
         model.addAttribute("expOps", eOps);
         model.addAttribute("totalCogs", tCogs); model.addAttribute("totalOps", tOps);
         model.addAttribute("grossProfit", gross); model.addAttribute("netProfit", net);
@@ -615,6 +675,7 @@ public class ProductController {
             String cat = "Other";
             if (item.contains("juice") || item.contains("passion") || item.contains("mango")) cat = "Juices";
             else if (item.contains("uji")) cat = "Uji";
+            else if (item.contains("coffee")) cat = "Coffee";
             else if (item.contains("cupcake") || item.contains("cake")) cat = "Cupcakes";
             else if (item.contains("cookie")) cat = "Cookies";
             catRevenue.put(cat, catRevenue.getOrDefault(cat, 0.0) + amt);

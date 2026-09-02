@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.w3.org/1999/xhtml">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Expenses - Fruity Fusion</title>
@@ -61,6 +61,7 @@
                                     <option value="Sugar" th:selected="${selectedCategory == 'Sugar'}">Sugar</option>
                                     <option value="Juice Ingredients" th:selected="${selectedCategory == 'Juice Ingredients'}">Juice Ingredients</option>
                                     <option value="Uji Ingredients" th:selected="${selectedCategory == 'Uji Ingredients'}">Uji Ingredients</option>
+                                    <option value="Coffee Ingredients" th:selected="${selectedCategory == 'Coffee Ingredients'}">Coffee Ingredients</option>
                                     <option value="Snacks" th:selected="${selectedCategory == 'Snacks'}">Snacks</option>
                                     <option value="Spices" th:selected="${selectedCategory == 'Spices'}">Spices</option>
                                     <option value="Packaging" th:selected="${selectedCategory == 'Packaging'}">Packaging</option>
@@ -110,6 +111,7 @@
                                     <option value="Sugar">Sugar</option>
                                     <option value="Juice Ingredients">Juice Ingredients (Fruit)</option>
                                     <option value="Uji Ingredients">Uji Ingredients</option>
+                                    <option value="Coffee Ingredients">Coffee Ingredients</option>
                                     <option value="Snacks">Snacks</option>
                                     <option value="Spices">Spices</option>
                                     <option value="Packaging">Packaging</option>
@@ -170,6 +172,18 @@
                             <input type="number" step="0.01" th:field="*{amount}" class="form-control" required>
                         </div>
 
+                        <!-- Visible ONLY to Admins -->
+                        <div class="mb-3" sec:authorize="hasRole('ADMIN')">
+                            <label for="manualDate" class="form-label fw-bold">Transaction Date</label>
+                            <input type="date" id="manualDate" name="manualDate" class="form-control"
+                                   th:max="${#dates.format(#dates.createNow(), 'yyyy-MM-dd')}"
+                                   th:value="${#dates.format(#dates.createNow(), 'yyyy-MM-dd')}">
+                        </div>
+
+                        <!-- Fallback for cashiers -->
+                        <input type="hidden" name="manualDate"
+                               th:value="${#dates.format(#dates.createNow(), 'yyyy-MM-dd')}"
+                               sec:authorize="!hasRole('ADMIN')">
                         <button type="submit" class="btn btn-dark w-100 fw-bold">Save Expense</button>
                     </form>
                 </div>

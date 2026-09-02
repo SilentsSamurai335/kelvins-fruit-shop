@@ -88,6 +88,11 @@
                         <tr><td class="ps-5">CASH</td><td class="text-end text-success" th:text="${#numbers.formatDecimal(ujiCash, 1, 'COMMA', 0, 'POINT')}"></td><td></td></tr>
                         <tr><td class="ps-5">MPESA</td><td class="text-end text-success" th:text="${#numbers.formatDecimal(ujiMpesa, 1, 'COMMA', 0, 'POINT')}"></td><td class="text-end fw-bold text-success" th:text="${#numbers.formatDecimal(ujiCash + ujiMpesa, 1, 'COMMA', 0, 'POINT')}"></td></tr>
 
+                        <tr><td colspan="3" class="fw-bold ps-4">Coffee Sales</td></tr>
+                        <tr><td class="ps-5">CASH</td><td class="text-end text-success" th:text="${#numbers.formatDecimal(coffeeCash, 1, 'COMMA', 0, 'POINT')}"></td><td></td></tr>
+                        <tr><td class="ps-5">MPESA</td><td class="text-end text-success" th:text="${#numbers.formatDecimal(coffeeMpesa, 1, 'COMMA', 0, 'POINT')}"></td><td class="text-end fw-bold text-success" th:text="${#numbers.formatDecimal(coffeeCash + coffeeMpesa, 1, 'COMMA', 0, 'POINT')}"></td></tr>
+
+
                         <tr><td colspan="3" class="fw-bold ps-4">Cupcakes</td></tr>
                         <tr><td class="ps-5">Total</td><td class="text-end text-success" th:text="${#numbers.formatDecimal(cakeCash + cakeMpesa, 1, 'COMMA', 0, 'POINT')}"></td><td></td></tr>
 
@@ -116,6 +121,13 @@
                         <tr><td colspan="3" class="fw-bold ps-4">Uji Ingredients</td></tr>
                         <tr th:each="exp : ${cogsUji}">
                             <td class="ps-5" th:text="${exp.itemName}"></td>
+                            <td class="text-end text-danger" th:text="${#numbers.formatDecimal(exp.amount, 1, 'COMMA', 0, 'POINT')}"></td>
+                            <td></td>
+                        </tr>
+
+                        <tr><td colspan="3" class="fw-bold ps-4">Coffee Ingredients</td></tr>
+                        <tr th:each="exp : ${cogsCoffee}">
+                            <td class="ps-5" th:text="${exp.itemName} + ' (' + ${exp.quantity} + ')'"></td>
                             <td class="text-end text-danger" th:text="${#numbers.formatDecimal(exp.amount, 1, 'COMMA', 0, 'POINT')}"></td>
                             <td></td>
                         </tr>

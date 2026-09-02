@@ -6,7 +6,11 @@ import com.kelvinsfusion.managementsystem.repository.ProductRepository;
 import com.kelvinsfusion.managementsystem.repository.SaleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication; // Added for Role check
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate; // Added
+import java.time.LocalTime; // Added
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -16,19 +20,27 @@ public class ApiSalesController {
 
     @Autowired private ProductRepository productRepository;
     @Autowired private SaleRepository saleRepository;
-    // We don't even need MpesaService here anymore!
 
-    // --- REMOVED THE STK-PUSH METHOD ---
-
-    // ONLY THIS METHOD REMAINS
     @PostMapping("/save")
-    public ResponseEntity<?> saveSale(@RequestBody SaleRequest request) {
+    public ResponseEntity<?> saveSale(@RequestBody SaleRequest request, Authentication authentication) {
         List<String> sold = new ArrayList<>();
+
+        // 1. Check if the user is an Admin
+        boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(r -> r.getAuthority().equals("ROLE_ADMIN") || r.getAuthority().equals("ADMIN"));
+
+        // 2. Determine the correct Sale Date
+        LocalDateTime finalSaleDate = LocalDateTime.now(); // Default to right now
+        if (isAdmin && request.getManualDate() != null && !request.getManualDate().isAfter(LocalDate.now())) {
+            // Admin time-travel: Combine the chosen date with the current time
+            finalSaleDate = request.getManualDate().atTime(LocalTime.now());
+        }
 
         if (request.getItems() != null) {
             for (CartItem item : request.getItems()) {
                 Product product = productRepository.findById(item.getId()).orElse(null);
                 if (product != null) {
+
                     // Logic to reduce stock for Non-Beverages
                     if (!"Beverage".equalsIgnoreCase(product.getCategory())) {
                         if(product.getStockSmall() < item.getQty()) {
@@ -43,8 +55,10 @@ public class ApiSalesController {
                     sale.setItemsSold(item.getName());
                     sale.setQuantity(item.getQty());
                     sale.setTotalAmount(item.getPrice() * item.getQty());
-                    sale.setPaymentMethod(request.getPaymentMethod()); // Saves "CASH" or "MPESA"
-                    sale.setSaleDateTime(LocalDateTime.now());
+                    sale.setPaymentMethod(request.getPaymentMethod());
+
+                    // 3. Apply the calculated date here!
+                    sale.setSaleDateTime(finalSaleDate);
 
                     if(request.getPhoneNumber() != null) {
                         sale.setPhoneNumber(request.getPhoneNumber());
@@ -58,13 +72,19 @@ public class ApiSalesController {
         return ResponseEntity.ok(Collections.singletonMap("message", "Sale Recorded Successfully"));
     }
 
-    // INTERNAL DTO CLASSES (Keep these)
+    // INTERNAL DTO CLASSES
     public static class SaleRequest {
         private String paymentMethod;
         private String phoneNumber;
         private Double amount;
         private List<CartItem> items;
-        // Getters & Setters...
+
+        private LocalDate manualDate; // <-- ADDED THE DATE VARIABLE HERE
+
+        // Getters & Setters
+        public LocalDate getManualDate() { return manualDate; }
+        public void setManualDate(LocalDate manualDate) { this.manualDate = manualDate; }
+
         public String getPaymentMethod() { return paymentMethod; }
         public void setPaymentMethod(String p) { this.paymentMethod = p; }
         public String getPhoneNumber() { return phoneNumber; }
@@ -80,7 +100,7 @@ public class ApiSalesController {
         private String name;
         private int qty;
         private Double price;
-        // Getters & Setters...
+        // Getters & Setters
         public Long getId() { return id; }
         public void setId(Long i) { this.id = i; }
         public String getName() { return name; }

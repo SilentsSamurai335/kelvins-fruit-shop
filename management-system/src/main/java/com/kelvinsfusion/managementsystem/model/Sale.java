@@ -4,6 +4,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -19,6 +21,7 @@ public class Sale {
     private int quantity;        // e.g., 3 cups
     private String paymentMethod; // "Mpesa" or "Cash"
     private String phoneNumber;
+    private LocalDate manualDate;
 
     // --- Constructor ---
     public Sale() {
@@ -50,4 +53,7 @@ public class Sale {
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
     }
+
+    public LocalDate getManualDate() { return manualDate; }
+    public void setManualDate(LocalDate manualDate) { this.manualDate = manualDate; }
 }
