@@ -9,6 +9,7 @@ public class Expense {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @org.springframework.format.annotation.DateTimeFormat(pattern = "yyyy-MM-dd")
     private LocalDate date;
 
     private String category; // e.g., "Transport", "Utilities", "Juice Ingredients"

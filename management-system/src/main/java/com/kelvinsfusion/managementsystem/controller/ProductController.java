@@ -339,6 +339,7 @@ public class ProductController {
         model.addAttribute("selectedMonth", (month != null) ? month : now.getMonthValue());
         model.addAttribute("selectedYear", (year != null) ? year : now.getYear());
         model.addAttribute("searchKeyword", search);
+        model.addAttribute("expense", new Expense());
 
         return "expenses";
     }
@@ -363,6 +364,37 @@ public class ProductController {
 
         expenseRepository.save(expense);
         return "redirect:/expenses";
+    }
+
+    // --- DELETE EXPENSE ---
+    @org.springframework.web.bind.annotation.GetMapping("/expenses/delete/{id}")
+    public String deleteExpense(@org.springframework.web.bind.annotation.PathVariable Long id) {
+        expenseRepository.deleteById(id);
+
+        // Instantly redirect back to the clean expenses page
+        return "redirect:/expenses";
+    }
+
+    // --- EDIT EXPENSE ---
+    @org.springframework.web.bind.annotation.GetMapping("/expenses/edit/{id}")
+    public String editExpense(@org.springframework.web.bind.annotation.PathVariable Long id, org.springframework.ui.Model model) {
+
+        // 1. Find the exact expense they want to edit (This replaces the empty "new Expense()")
+        Expense expenseToEdit = expenseRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid expense Id:" + id));
+
+        // 2. Fetch the full list for the table
+        java.util.List<Expense> expensesList = expenseRepository.findAll();
+
+        // 3. Calculate any totals your HTML page requires (so it doesn't crash on a null value!)
+        double totalExpenses = expensesList.stream().mapToDouble(Expense::getAmount).sum();
+
+        // 4. Pass EVERYTHING the HTML needs to survive
+        model.addAttribute("newExpense", expenseToEdit);
+        model.addAttribute("listExpenses", expensesList);   // Populates the table
+        model.addAttribute("totalExpenses", totalExpenses); // Populates the summary cards
+
+        return "expenses";
     }
 
     // --- INCOME STATEMENT (FIXED: Added Calculations back) ---

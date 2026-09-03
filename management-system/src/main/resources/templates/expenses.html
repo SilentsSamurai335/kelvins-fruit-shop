@@ -16,7 +16,6 @@
             <div class="card mb-4 border-0 shadow-sm">
                 <div class="card-body">
                     <form action="/expenses" method="get" class="row g-2 align-items-end">
-
                         <div class="col-auto">
                             <label class="small text-muted fw-bold">Time Period</label><br>
                             <div class="d-flex gap-2">
@@ -65,6 +64,8 @@
                                     <option value="Snacks" th:selected="${selectedCategory == 'Snacks'}">Snacks</option>
                                     <option value="Spices" th:selected="${selectedCategory == 'Spices'}">Spices</option>
                                     <option value="Packaging" th:selected="${selectedCategory == 'Packaging'}">Packaging</option>
+                                    <option value="Blending Water" th:selected="${selectedCategory == 'Blending Water'}">Blending Water</option>
+
                                 </optgroup>
 
                                 <optgroup label="Utilities">
@@ -77,6 +78,11 @@
 
                                 <optgroup label="Operations">
                                     <option value="Transport" th:selected="${selectedCategory == 'Transport'}">Transport</option>
+                                    <option value="Lunch" th:selected="${selectedCategory == 'Lunch'}">Lunch</option>
+                                </optgroup>
+
+                                <optgroup label="Other Expenses">
+                                    <option value="Other" th:selected="${selectedCategory == 'Other'}">Other</option>
                                 </optgroup>
                             </select>
                         </div>
@@ -101,6 +107,7 @@
                 <div class="card-body">
 
                     <form th:action="@{/save-expense}" th:object="${newExpense}" method="post" onsubmit="preFillSugarName()">
+                        <input type="hidden" th:field="*{id}" />
 
                         <div class="mb-3">
                             <label class="fw-bold">Category</label>
@@ -115,6 +122,8 @@
                                     <option value="Snacks">Snacks</option>
                                     <option value="Spices">Spices</option>
                                     <option value="Packaging">Packaging</option>
+                                    <option value="Blending Water">Blending Water</option>
+
                                 </optgroup>
 
                                 <optgroup label="Utilities">
@@ -127,6 +136,11 @@
 
                                 <optgroup label="Operations">
                                     <option value="Transport">Transport</option>
+                                    <option value="Lunch">Lunch</option>
+                                </optgroup>
+
+                                <optgroup label="Other Expenses">
+                                    <option value="Other">Other</option>
                                 </optgroup>
                             </select>
                         </div>
@@ -198,35 +212,52 @@
                             <th>Category</th>
                             <th>Details</th>
                             <th>Cost</th>
+                            <th>Actions</th>
                         </tr>
                         </thead>
                         <tbody>
-                        <tr th:each="expense : ${listExpenses}">
-                            <td th:text="${expense.date}"></td>
+                        <tr th:each="exp : ${listExpenses}">
+                            <td th:text="${exp.date}"></td>
 
                             <td>
-                                <span class="badge bg-secondary" th:text="${expense.category}">Category</span>
+                                <span class="badge bg-secondary" th:text="${exp.category}">Category</span>
                             </td>
 
                             <td>
-                                <span th:if="${expense.category == 'Transport'}">
-                                    <strong th:text="${expense.trips} + ' Trips'"></strong>:
-                                    <span th:text="${expense.startLocation} + ' ➝ ' + ${expense.endLocation}"></span>
-                                    <div class="small text-muted" th:text="${expense.description}"></div>
+                                <span th:if="${exp.category == 'Transport'}">
+                                    <strong th:text="${exp.trips} + ' Trips'"></strong>:
+                                    <span th:text="${exp.startLocation} + ' ➝ ' + ${exp.endLocation}"></span>
+                                    <div class="small text-muted" th:text="${exp.description}"></div>
                                 </span>
 
-                                <span th:if="${expense.category == 'Sugar'}">
+                                <span th:if="${exp.category == 'Sugar'}">
                                     <span class="fw-bold">Sugar</span>
-                                    <span th:if="${expense.quantity != null}" th:text="'(' + ${expense.quantity} + ')'"></span>
+                                    <span th:if="${exp.quantity != null}" th:text="'(' + ${exp.quantity} + ')'"></span>
                                 </span>
 
-                                <span th:if="${expense.category != 'Transport' and expense.category != 'Sugar'}">
-                                    <span th:text="${expense.itemName}" class="fw-bold"></span>
-                                    <span th:if="${expense.quantity != null}" class="text-muted" th:text="' - ' + ${expense.quantity}"></span>
-                                    <span th:if="${expense.units != null}" class="text-muted" th:text="' - ' + ${expense.units} + ' Units'"></span>
+                                <span th:if="${exp.category != 'Transport' and exp.category != 'Sugar'}">
+                                    <span th:text="${exp.itemName}" class="fw-bold"></span>
+                                    <span th:if="${exp.quantity != null}" class="text-muted" th:text="' - ' + ${exp.quantity}"></span>
+                                    <span th:if="${exp.units != null}" class="text-muted" th:text="' - ' + ${exp.units} + ' Units'"></span>
                                 </span>
                             </td>
-                            <td th:text="${expense.amount}" class="text-danger fw-bold"></td>
+                            <td th:text="${exp.amount}" class="text-danger fw-bold"></td>
+                            <td>
+                                <!-- Edit Icon (Pencil) -->
+                                <a th:href="@{/expenses/edit/{id}(id=${exp.id})}"
+                                   class="text-primary me-3"
+                                   title="Edit">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </a>
+
+                                <!-- Delete Icon (Trashcan) with a confirmation popup -->
+                                <a th:href="@{/expenses/delete/{id}(id=${exp.id})}"
+                                   class="text-danger"
+                                   title="Delete"
+                                   onclick="return confirm('Are you sure you want to delete this expense?');">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </td>
                         </tr>
                         </tbody>
                     </table>
@@ -257,7 +288,7 @@
         if (category === "Transport") {
             transDiv.style.display = "block";
         }
-        else if (category === "Sugar") {
+        else if (category === "Sugar" || category === "Blending Water") {
             // SUGAR: Show Quantity ONLY (Name is hidden)
             qtyDiv.style.display = "block";
         }
@@ -265,7 +296,7 @@
             nameDiv.style.display = "block";
             unitsDiv.style.display = "block";
         }
-        else if (["Rent", "Gas", "Garbage", "Lunch", "Honorarium", "Maintenance"].includes(category)) {
+        else if (["Rent", "Gas", "Garbage", "Lunch", "Honorarium", "Maintenance", "Lunch", "Other"].includes(category)) {
             nameDiv.style.display = "block";
         }
         else {
