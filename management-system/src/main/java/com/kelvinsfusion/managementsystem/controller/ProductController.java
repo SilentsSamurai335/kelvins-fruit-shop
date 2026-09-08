@@ -3,6 +3,7 @@ package com.kelvinsfusion.managementsystem.controller;
 import com.kelvinsfusion.managementsystem.model.*;
 import com.kelvinsfusion.managementsystem.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -144,18 +145,22 @@ public class ProductController {
         if (product != null) {
             Sale newSale = new Sale();
 
-            // --- NEW ADMIN DATE LOGIC ---
+            // 1. Capture the exact username from the active session (e.g., 'paul', 'godi', 'les')
+            String currentUsername = "Admin";
+            if (authentication != null && authentication.isAuthenticated()) {
+                currentUsername = authentication.getName();
+            }
+            newSale.setSeller(currentUsername);
+
+            // 2. Admin Date Logic
             boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
                     .anyMatch(r -> r.getAuthority().equals("ROLE_ADMIN"));
 
             if (isAdmin && manualDate != null && !manualDate.isAfter(LocalDate.now())) {
-                // Combine the chosen date with the current time
                 newSale.setSaleDateTime(manualDate.atTime(LocalTime.now()));
             } else {
-                // Fallback to exactly right now for cashiers or invalid future dates
                 newSale.setSaleDateTime(LocalDateTime.now());
             }
-            // ----------------------------
 
             newSale.setQuantity(qty);
             newSale.setPaymentMethod(payment);
@@ -195,7 +200,17 @@ public class ProductController {
 
         // 3. Send you right back to the inventory page
         // (Change this to "redirect:/products" if that is your actual URL)
-        return "redirect:/inventory";
+        return "redirect:/products";
+    }
+
+    @org.springframework.web.bind.annotation.GetMapping("/products/edit/{id}")
+    public String editProduct(@org.springframework.web.bind.annotation.PathVariable Long id, org.springframework.ui.Model model) {
+        Product productToEdit = productRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid product Id:" + id));
+
+        // We pass it as "product" so your existing add-product form catches it naturally
+        model.addAttribute("product", productToEdit);
+        return "add-product";
     }
  
     @PostMapping("/sell-custom")
@@ -261,6 +276,11 @@ public class ProductController {
                             (s.getPhoneNumber() != null && s.getPhoneNumber().contains(keyword)))
                     .toList();
         }
+        // SORT THE LIST: Most recent at the top
+        // NOTE: Change 'getTimestamp' to 'getDate' or 'getTime' depending on exactly what you named the time variable in your Sale.java entity!
+        sales = sales.stream()
+                .sorted(java.util.Comparator.comparing(Sale::getSaleDateTime).reversed())
+                .collect(java.util.stream.Collectors.toList());
 
         double totalRevenue = sales.stream().mapToDouble(Sale::getTotalAmount).sum();
         model.addAttribute("listSales", sales);
@@ -271,55 +291,132 @@ public class ProductController {
         model.addAttribute("selectedYear", (year != null) ? year : now.getYear());
         model.addAttribute("selectedPayment", paymentMethod);
         model.addAttribute("searchKeyword", search);
+        model.addAttribute("sales", sales);
 
         return "sales";
+    }
+
+    @org.springframework.web.bind.annotation.GetMapping("/sales/edit/{id}")
+    public String editSale(@org.springframework.web.bind.annotation.PathVariable Long id, org.springframework.ui.Model model) {
+
+        // 1. Grab the specific sale from the database
+        Sale saleToEdit = saleRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid sale Id:" + id));
+
+        // 2. Fetch the sorted list so the table doesn't disappear
+        java.util.List<Sale> salesList = saleRepository.findAll().stream()
+                .sorted(java.util.Comparator.comparing(Sale::getSaleDateTime).reversed())
+                .collect(java.util.stream.Collectors.toList());
+
+        // 3. Send the specific sale to the model so an HTML form can display it
+        model.addAttribute("editSale", saleToEdit);
+        model.addAttribute("sales", salesList);
+
+        // Note: Add any other attributes your sales page requires (like totalRevenue) here so they don't load as null!
+
+        return "sales";
+    }
+
+    @org.springframework.web.bind.annotation.PostMapping("/sales/save")
+    public String saveEditedSale(@org.springframework.web.bind.annotation.ModelAttribute("editSale") Sale editedSale) {
+        Sale existingSale = saleRepository.findById(editedSale.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid sale Id"));
+
+        // Update the specific fields from the modal
+        existingSale.setTotalAmount(editedSale.getTotalAmount());
+        existingSale.setQuantity(editedSale.getQuantity());
+        existingSale.setPaymentMethod(editedSale.getPaymentMethod());
+
+        saleRepository.save(existingSale);
+        return "redirect:/sales";
     }
 
     @GetMapping("/sales/delete/{id}")
     public String deleteSale(@PathVariable Long id, Principal principal) {
         // Double-check security: only Kelvin can do this
-        if ("kelvin".equals(principal.getName())) {
+        if (principal != null && "kelvin".equals(principal.getName())) {
             saleRepository.deleteById(id);
         }
         return "redirect:/sales";
     }
 
     // --- EXPENSES ---
-    @GetMapping("/expenses")
-    public String showExpenses(@RequestParam(value = "period", required = false) String period,
-                               @RequestParam(value = "month", required = false) Integer month,
-                               @RequestParam(value = "year", required = false) Integer year,
-                               @RequestParam(value = "category", required = false) String category,
-                               @RequestParam(value = "search", required = false) String search,
-                               Model model) {
-        LocalDate now = LocalDate.now();
-        LocalDate start = now.minusYears(100);
-        LocalDate end = now;
+    @org.springframework.web.bind.annotation.GetMapping("/expenses")
+    public String showExpenses(@org.springframework.web.bind.annotation.RequestParam(value = "period", required = false) String period,
+                               @org.springframework.web.bind.annotation.RequestParam(value = "month", required = false) Integer month,
+                               @org.springframework.web.bind.annotation.RequestParam(value = "year", required = false) Integer year,
+                               @org.springframework.web.bind.annotation.RequestParam(value = "date", required = false) String specificDate, // <-- NEW PARAMETER
+                               @org.springframework.web.bind.annotation.RequestParam(value = "category", required = false) String category,
+                               @org.springframework.web.bind.annotation.RequestParam(value = "search", required = false) String search,
+                               @org.springframework.web.bind.annotation.RequestParam(value = "specificYear", required = false) Integer specificYear,
+                               org.springframework.ui.Model model) {
+
+        java.time.LocalDate now = java.time.LocalDate.now();
+        java.time.LocalDate start = now.minusYears(100);
+        java.time.LocalDate end = now;
         String title = "All Time";
 
-        if (month != null && year != null) {
-            start = LocalDate.of(year, month, 1);
+        // 1. SPECIFIC DATE FILTER (Checked first!)
+        if (specificDate != null && !specificDate.isEmpty()) {
+            java.time.LocalDate exactDate = java.time.LocalDate.parse(specificDate);
+            start = exactDate;
+            end = exactDate;
+            title = "Transactions on " + exactDate.toString();
+        }
+        // 2. ARCHIVE FILTER
+        else if (month != null && year != null) {
+            start = java.time.LocalDate.of(year, month, 1);
             end = start.plusMonths(1).minusDays(1);
-            title = Month.of(month).name() + " " + year;
-        } else if ("today".equals(period)) {
+            title = java.time.Month.of(month).name() + " " + year;
+        }
+        else if (specificYear != null) {
+            start = java.time.LocalDate.of(specificYear, 1, 1);
+            end = java.time.LocalDate.of(specificYear, 12, 31);
+            title = "Year " + specificYear;
+            List<Expense> expenses = expenseRepository.findByDateBetween(start, end);
+        }
+        // 3. PERIOD FILTER
+        else if ("today".equals(period)) {
             start = now;
+            title = "Today";
         } else if ("week".equals(period)) {
             start = now.minusDays(now.getDayOfWeek().getValue() - 1);
+            title = "This Week";
         } else if ("month".equals(period)) {
             start = now.withDayOfMonth(1);
+            title = "This Month";
         }
 
-        List<Expense> expenses = expenseRepository.findByDateBetween(start, end);
+        // Hit the database using the dates we calculated above
+        java.util.List<Expense> expenses = expenseRepository.findByDateBetween(start, end);
 
+        // 4. CATEGORY FILTER (Filters the database results)
         if (category != null && !category.isEmpty() && !"ALL".equals(category)) {
-            if ("GROUP_UTILITIES".equals(category)) {
-                expenses = expenses.stream().filter(e -> Arrays.asList("Rent", "Gas", "Tap Water", "Garbage", "Token").contains(e.getCategory())).toList();
+            if ("GROUP_STOCKS".equals(category)) {
+                expenses = expenses.stream().filter(e -> java.util.Arrays.asList("Sugar", "Juice Ingredients", "Uji Ingredients", "Coffee Ingredients", "Snacks", "Spices", "Packaging", "Blending Water").contains(e.getCategory())).toList();
+            } else if ("GROUP_UTILITIES".equals(category)) {
+                expenses = expenses.stream().filter(e -> java.util.Arrays.asList("Rent", "Gas", "Tap Water", "Garbage", "Token").contains(e.getCategory())).toList();
             } else if ("GROUP_OPERATIONS".equals(category)) {
-                expenses = expenses.stream().filter(e -> Arrays.asList("Transport", "Lunch", "Maintenance").contains(e.getCategory())).toList();
+                expenses = expenses.stream().filter(e -> java.util.Arrays.asList("Transport", "Lunch", "Maintenance").contains(e.getCategory())).toList();
+            } else if ("GROUP_HONORARIUM".equals(category)) {
+                expenses = expenses.stream().filter(e -> java.util.List.of("Honorarium").contains(e.getCategory())).toList();
             } else {
                 String cat = category;
                 expenses = expenses.stream().filter(e -> cat.equals(e.getCategory())).toList();
             }
+        }
+
+        // 5. SORT THE LIST: Most recent dates at the top
+        expenses = expenses.stream()
+                .sorted(java.util.Comparator.comparing(Expense::getDate).reversed())
+                .collect(java.util.stream.Collectors.toList());
+
+        // NEW: GROUP BY MONTH FOR THE ACCORDION
+        // This creates a map where the key is "SEPTEMBER 2026" and the value is the list of expenses for that month.
+        java.util.Map<String, java.util.List<Expense>> groupedExpenses = new java.util.LinkedHashMap<>();
+        for (Expense e : expenses) {
+            String monthYear = e.getDate().getMonth().name() + " " + e.getDate().getYear();
+            groupedExpenses.computeIfAbsent(monthYear, k -> new java.util.ArrayList<>()).add(e);
         }
 
         //THE NEW SEARCH LOGIC
@@ -340,6 +437,8 @@ public class ProductController {
         model.addAttribute("selectedYear", (year != null) ? year : now.getYear());
         model.addAttribute("searchKeyword", search);
         model.addAttribute("expense", new Expense());
+        model.addAttribute("selectedDate", specificDate);
+        model.addAttribute("groupedExpenses", groupedExpenses);
 
         return "expenses";
     }
@@ -384,7 +483,9 @@ public class ProductController {
                 .orElseThrow(() -> new IllegalArgumentException("Invalid expense Id:" + id));
 
         // 2. Fetch the full list for the table
-        java.util.List<Expense> expensesList = expenseRepository.findAll();
+        java.util.List<Expense> expensesList = expenseRepository.findAll().stream()
+                .sorted(java.util.Comparator.comparing(Expense::getDate).reversed())
+                .collect(java.util.stream.Collectors.toList());
 
         // 3. Calculate any totals your HTML page requires (so it doesn't crash on a null value!)
         double totalExpenses = expensesList.stream().mapToDouble(Expense::getAmount).sum();
@@ -754,6 +855,20 @@ public class ProductController {
                 expMap.put(e.getCategory(), expMap.getOrDefault(e.getCategory(), 0.0) + e.getAmount());
             }
         }
+        // Calculate Total Revenue
+        double totalAmount = saleRepository.findAll().stream()
+                .mapToDouble(Sale::getTotalAmount)
+                .sum();
+
+        // Calculate Total Expenses (assuming you have an expenseRepository)
+        // If you don't have an Expense entity yet, just set this to 0.0 for now!
+        double totalExpenses = expenseRepository.findAll().stream()
+                .mapToDouble(Expense::getAmount)
+                .sum();
+
+        // Compute Net Profit & Margin
+        double netProfit = totalRevenue - totalExpenses;
+        double profitMargin = (totalRevenue > 0) ? (netProfit / totalRevenue) * 100 : 0.0;
 
         model.addAttribute("totalRevenue", totalRevenue);
         model.addAttribute("period", period);
@@ -766,9 +881,43 @@ public class ProductController {
         model.addAttribute("payData", paymentMap.values());
         model.addAttribute("expLabels", expMap.keySet());
         model.addAttribute("expData", expMap.values());
+        model.addAttribute("netProfit", netProfit);
+        model.addAttribute("profitMargin", String.format("%.1f", profitMargin));
 
         return "analytics";
     }
+
+    // 1. Hourly Average Calculation for Peak Hours Graph
+    @GetMapping("/api/financial/hourly-traffic")
+    public ResponseEntity<?> getHourlyTraffic() {
+        List<Sale> allSales = saleRepository.findAll();
+
+        // Map to group sales by hour and calculate averages
+        Map<Integer, Double> hourlyTotals = new HashMap<>();
+        Map<Integer, Integer> hourCounts = new HashMap<>();
+        Set<LocalDate> uniqueDays = new HashSet<>();
+
+        for (Sale sale : allSales) {
+            if (sale.getSaleDateTime() != null) {
+                int hour = sale.getSaleDateTime().getHour();
+                uniqueDays.add(sale.getSaleDateTime().toLocalDate());
+                hourlyTotals.put(hour, hourlyTotals.getOrDefault(hour, 0.0) + sale.getTotalAmount());
+                hourCounts.put(hour, hourCounts.getOrDefault(hour, 0) + 1);
+            }
+        }
+        int totalDays = Math.max(1, uniqueDays.size());
+
+        // Compute daily average per hour (Total Revenue at Hour X / Total Days Recorded)
+        Map<String, Double> dailyHourAverages = new TreeMap<>();        for (int hour = 8; hour <= 23; hour++) { // e.g., operating hours 8 AM to 9 PM
+            double totalRevenueAtHour = hourlyTotals.getOrDefault(hour, 0.0);
+            double dailyAverage = totalRevenueAtHour / totalDays;
+            // Format label nicely (e.g., "08:00", "14:00")
+            String timeLabel = String.format("%02d:00", hour);
+            dailyHourAverages.put(timeLabel, dailyAverage);
+        }
+
+        return ResponseEntity.ok(dailyHourAverages);    }
+    
 
     // ==========================================
     // 10. API FOR REAL-TIME NOTIFICATIONS

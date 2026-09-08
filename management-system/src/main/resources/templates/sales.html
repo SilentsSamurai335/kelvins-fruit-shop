@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.w3.org/1999/xhtml">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sales History - Fruity Fusion</title>
@@ -131,40 +131,46 @@
 
             <div class="card shadow-sm border-0">
                 <div class="card-body p-0">
-                    <table class="table table-hover mb-0 align-middle" id="salesTable">
-                        <thead class="table-light">
+                    <table class="table table-dark table-hover mb-0 border-0">
+                        <thead>
                         <tr>
-                            <th class="text-start">Time</th>
-                            <th class="text-start">Item</th>
-                            <th class="text-center">Qty</th>
-                            <th class="text-center">Method</th>
-                            <th class="text-end">Amount</th>
-                            <th class="text-center no-print" th:if="${#authentication.name == 'kelvin'}">Action</th>
-                        </tr>
+                            <th>Time</th>
+                            <th>Item</th>
+                            <th>Qty</th>
+                            <th>Seller</th> <!-- NEW COLUMN -->
+                            <th>Method</th>
+                            <th>Amount</th>
+                            <th sec:authorize="hasAuthority('ROLE_ADMIN')">Action</th>                        </tr>
                         </thead>
                         <tbody>
-                        <tr th:each="sale : ${listSales}">
-                            <td class="text-start" th:text="${#temporals.format(sale.saleDateTime, 'dd-MM HH:mm')}"></td>
-                            <td class="text-start">
-                                <span th:text="${sale.itemsSold}" class="fw-bold"></span>
+                        <tr th:each="sale : ${sales}">
+                            <td th:text="${#temporals.format(sale.saleDateTime, 'dd-MM HH:mm')}"></td>                            <td th:text="${sale.itemsSold}"></td>
+                            <td th:text="${sale.quantity}"></td>
+
+                            <!-- NEW SELLER DATA -->
+                            <td>
+                                <!-- Fallback text 'Admin' if the seller is null on older records -->
+                                <span th:text="${sale.seller != null ? sale.seller : 'Admin'}"></span>
                             </td>
-                            <td class="text-center">
-                                <span class="badge bg-light text-dark border" th:text="${sale.quantity}">1</span>
+
+                            <td>
+                                <span class="badge" th:classappend="${sale.paymentMethod == 'Mpesa'} ? 'bg-success' : 'bg-secondary'" th:text="${sale.paymentMethod}"></span>
                             </td>
-                            <td class="text-center">
-            <span th:text="${sale.paymentMethod}"
-                  th:class="${#strings.toUpperCase(sale.paymentMethod) == 'MPESA'} ? 'badge bg-success' : 'badge bg-secondary'">
-            </span>
-                            </td>
-                            <td class="text-end fw-bold text-success"
-                                th:text="${#numbers.formatDecimal(sale.totalAmount, 1, 'COMMA', 2, 'POINT')}">
-                            </td>
-                            <td class="text-center no-print" th:if="${#authentication.name == 'kelvin'}">
-                                <a th:href="@{/sales/delete/{id}(id=${sale.id})}"
-                                   class="btn btn-sm btn-outline-danger py-0 px-2"
-                                   onclick="return confirm('Are you sure you want to void this sale?');">
-                                    <i class="fas fa-trash-alt"></i> Void
-                                </a>
+                            <td class="text-success fw-bold" th:text="${sale.totalAmount}"></td>
+
+                            <!-- ACTIONS (Edit + Void) -->
+                            <td sec:authorize="hasAuthority('ROLE_ADMIN')">
+                                <div class="d-flex gap-1">
+                                    <!-- NEW EDIT BUTTON -->
+                                    <a th:href="@{/sales/edit/{id}(id=${sale.id})}" class="btn btn-sm btn-outline-primary" title="Edit">
+                                        <i class="fas fa-pencil-alt"></i>
+                                    </a>
+
+                                    <!-- EXISTING VOID BUTTON -->
+                                    <a th:href="@{/sales/delete/{id}(id=${sale.id})}" class="btn btn-sm btn-outline-danger" title="Void" onclick="return confirm('Are you sure you want to void this sale?');">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                         </tbody>
@@ -265,5 +271,38 @@
         window.location.href = '/sales?' + params.toString();
     }
 </script>
+
+<!-- Only displays if the controller passed 'editSale' to the model -->
+<div th:if="${editSale != null}" class="modal d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.7);">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-light border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">Edit Transaction</h5>
+                <a th:href="@{/sales}" class="btn-close btn-close-white"></a>
+            </div>
+            <div class="modal-body">
+                <!-- Build your edit inputs here using th:object="${editSale}" -->
+                <form th:action="@{/sales/save}" method="post" th:object="${editSale}">
+                    <input type="hidden" th:field="*{id}" />
+
+                    <label class="form-label text-muted small fw-bold">Quantity</label>
+                    <input type="number" class="form-control form-control-sm mb-2" th:field="*{quantity}" />
+
+                    <label class="form-label text-muted small fw-bold mt-2">Payment Method</label>
+                    <select class="form-select form-select-sm mb-2" th:field="*{paymentMethod}">
+                        <option value="Cash">CASH</option>
+                        <option value="Mpesa">MPESA</option>
+                    </select>
+
+                    <label class="form-label text-muted small fw-bold mt-2">Amount</label>
+                    <input type="number" step="0.5" class="form-control form-control-sm mb-3" th:field="*{totalAmount}" />
+
+                    <button type="submit" class="btn btn-primary w-100">Update Sale</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>

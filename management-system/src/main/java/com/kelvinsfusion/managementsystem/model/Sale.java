@@ -22,6 +22,7 @@ public class Sale {
     private String paymentMethod; // "Mpesa" or "Cash"
     private String phoneNumber;
     private LocalDate manualDate;
+    private String seller;
 
     // --- Constructor ---
     public Sale() {
@@ -56,4 +57,7 @@ public class Sale {
 
     public LocalDate getManualDate() { return manualDate; }
     public void setManualDate(LocalDate manualDate) { this.manualDate = manualDate; }
+
+    public String getSeller() { return seller; }
+    public void setSeller(String seller) { this.seller = seller; }
 }

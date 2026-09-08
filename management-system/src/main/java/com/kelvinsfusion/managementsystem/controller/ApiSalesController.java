@@ -36,6 +36,10 @@ public class ApiSalesController {
             finalSaleDate = request.getManualDate().atTime(LocalTime.now());
         }
 
+        String loggedInUser = (authentication != null && authentication.isAuthenticated())
+                ? authentication.getName()
+                : "Admin";
+
         if (request.getItems() != null) {
             for (CartItem item : request.getItems()) {
                 Product product = productRepository.findById(item.getId()).orElse(null);
@@ -56,6 +60,7 @@ public class ApiSalesController {
                     sale.setQuantity(item.getQty());
                     sale.setTotalAmount(item.getPrice() * item.getQty());
                     sale.setPaymentMethod(request.getPaymentMethod());
+                    sale.setSeller(loggedInUser);
 
                     // 3. Apply the calculated date here!
                     sale.setSaleDateTime(finalSaleDate);
