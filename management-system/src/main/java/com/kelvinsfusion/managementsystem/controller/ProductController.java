@@ -15,6 +15,12 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.LocalDateTime;
 import java.time.Month;
+import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import org.springframework.data.domain.Sort;
 import java.util.*;
 
 @Controller
@@ -33,6 +39,7 @@ public class ProductController {
     @GetMapping("/")
     public String showLandingPage(Model model, Principal principal) {
         List<Sale> allSales = saleRepository.findAll();
+        LocalDate today = LocalDate.now();
 
         Map<String, Integer> productMap = new HashMap<>();
         Map<LocalDate, Double> trendMap = new TreeMap<>();
@@ -49,10 +56,17 @@ public class ProductController {
             }
         }
 
+        double todaySalesTotal = saleRepository.findAll().stream()
+                .filter(sale -> sale.getSaleDateTime() != null)
+                .filter(sale -> sale.getSaleDateTime().toLocalDate().equals(today))
+                .mapToDouble(Sale::getTotalAmount)
+                .sum();
+
         model.addAttribute("productLabels", productMap.keySet());
         model.addAttribute("productData", productMap.values());
         model.addAttribute("trendDates", trendMap.keySet());
         model.addAttribute("trendAmounts", trendMap.values());
+        model.addAttribute("todaySalesTotal", todaySalesTotal);
 
         // Notifications
         List<TeamLog> allChats = teamLogRepository.findByTypeOrderByTimestampDesc("CHAT");
@@ -276,6 +290,25 @@ public class ProductController {
                             (s.getPhoneNumber() != null && s.getPhoneNumber().contains(keyword)))
                     .toList();
         }
+
+        List<Sale> allSales = saleRepository.findAll(Sort.by(Sort.Direction.DESC, "saleDateTime"));
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM yyyy");
+
+        Map<String, List<Sale>> groupedSales = allSales.stream()
+                .filter(sale -> sale.getSaleDateTime() != null) // Prevents crashes from old data
+                .collect(Collectors.groupingBy(
+                        sale -> sale.getSaleDateTime().format(formatter),
+                        LinkedHashMap::new, // Preserves the newest-first sorting order
+                        Collectors.toList()
+                ));
+        Map<String, Double> monthlyTotals = new java.util.HashMap<>();
+        for (Map.Entry<String, List<Sale>> entry : groupedSales.entrySet()) {
+            double total = entry.getValue().stream()
+                    .mapToDouble(Sale::getTotalAmount)
+                    .sum();
+            monthlyTotals.put(entry.getKey(), total);
+        }
         // SORT THE LIST: Most recent at the top
         // NOTE: Change 'getTimestamp' to 'getDate' or 'getTime' depending on exactly what you named the time variable in your Sale.java entity!
         sales = sales.stream()
@@ -292,6 +325,8 @@ public class ProductController {
         model.addAttribute("selectedPayment", paymentMethod);
         model.addAttribute("searchKeyword", search);
         model.addAttribute("sales", sales);
+        model.addAttribute("groupedSales", groupedSales);
+        model.addAttribute("monthlyTotals", monthlyTotals);
 
         return "sales";
     }
@@ -709,7 +744,8 @@ public class ProductController {
 
     @GetMapping("/users")
     public String showUsers(Model model) {
-        model.addAttribute("listUsers", userRepository.findAll());
+        // Only query the database once and attach it to "users"
+        model.addAttribute("users", userRepository.findAll());
         model.addAttribute("newUser", new User());
         return "users";
     }
@@ -744,6 +780,10 @@ public class ProductController {
     // ==========================================
     @GetMapping("/analytics")
     public String showAnalytics(@RequestParam(value = "period", defaultValue = "monthly") String period,
+                                @RequestParam(required = false) String specificMonth,
+                                @RequestParam(required = false) String specificYear,
+                                @RequestParam(required = false) String dayOfWeek,
+                                @RequestParam(required = false) String complexMonth,
                                 Model model, Principal principal) {
         if (principal == null || !"kelvin".equals(principal.getName())) return "redirect:/";
 
@@ -789,10 +829,32 @@ public class ProductController {
                 trendMap.put(String.valueOf(i), 0.0);
             }
         }
-
-        // 2. FETCH DATA
-        List<Sale> sales = saleRepository.findBySaleDateTimeBetween(startDateTime, endDateTime);
+        // 1. FETCH DATA
+        List<Sale> rawSales = saleRepository.findBySaleDateTimeBetween(startDateTime, endDateTime);
         List<Expense> expenses = expenseRepository.findAll();
+
+        // 2. APPLY UI FILTERS TO THE MAIN LIST BEFORE AGGREGATION
+        List<Sale> sales = rawSales.stream().filter(sale -> {
+            if (sale.getSaleDateTime() == null) return false;
+
+            LocalDateTime time = sale.getSaleDateTime();
+            boolean matches = true;
+            String saleYearMonth = String.format("%04d-%02d", time.getYear(), time.getMonthValue());
+
+            // Specific Month
+            if (specificMonth != null && !specificMonth.isEmpty() && !saleYearMonth.equals(specificMonth)) matches = false;
+
+            // Specific Year
+            if (specificYear != null && !specificYear.isEmpty() && time.getYear() != Integer.parseInt(specificYear)) matches = false;
+
+            // Complex Filter (Day of Week + Month)
+            if (complexMonth != null && !complexMonth.isEmpty() && dayOfWeek != null && !dayOfWeek.isEmpty()) {
+                if (!saleYearMonth.equals(complexMonth) || !time.getDayOfWeek().name().equalsIgnoreCase(dayOfWeek)) {
+                    matches = false;
+                }
+            }
+            return matches;
+        }).collect(Collectors.toList());
 
         // 3. AGGREGATE
         double totalRevenue = 0;
@@ -870,6 +932,34 @@ public class ProductController {
         double netProfit = totalRevenue - totalExpenses;
         double profitMargin = (totalRevenue > 0) ? (netProfit / totalRevenue) * 100 : 0.0;
 
+        List<Sale> allSales = saleRepository.findAll();
+
+        List<Sale> filteredSales = allSales.stream().filter(sale -> {
+            if (sale.getSaleDateTime() == null) return false;
+
+            LocalDateTime time = sale.getSaleDateTime();
+            boolean matches = true;
+
+            // HTML type="month" sends data as "YYYY-MM" (e.g., "2026-09")
+            String saleYearMonth = String.format("%04d-%02d", time.getYear(), time.getMonthValue());
+
+            // Check Specific Month Filter
+            if (specificMonth != null && !specificMonth.isEmpty()) {
+                if (!saleYearMonth.equals(specificMonth)) matches = false;
+            }
+
+            // Check Complex Filter (Day of Week + Month)
+            if (complexMonth != null && !complexMonth.isEmpty() && dayOfWeek != null && !dayOfWeek.isEmpty()) {
+                if (!saleYearMonth.equals(complexMonth) || !time.getDayOfWeek().name().equalsIgnoreCase(dayOfWeek)) {
+                    matches = false;
+                }
+            }
+
+            return matches;
+        }).collect(Collectors.toList());
+
+
+
         model.addAttribute("totalRevenue", totalRevenue);
         model.addAttribute("period", period);
         model.addAttribute("trendTitle", trendTitle);
@@ -883,6 +973,7 @@ public class ProductController {
         model.addAttribute("expData", expMap.values());
         model.addAttribute("netProfit", netProfit);
         model.addAttribute("profitMargin", String.format("%.1f", profitMargin));
+        model.addAttribute("sales", filteredSales);
 
         return "analytics";
     }
@@ -891,32 +982,34 @@ public class ProductController {
     @GetMapping("/api/financial/hourly-traffic")
     public ResponseEntity<?> getHourlyTraffic() {
         List<Sale> allSales = saleRepository.findAll();
+        LocalDateTime cutoffDate = LocalDateTime.of(2026, 9, 10, 0, 0);
 
-        // Map to group sales by hour and calculate averages
-        Map<Integer, Double> hourlyTotals = new HashMap<>();
-        Map<Integer, Integer> hourCounts = new HashMap<>();
-        Set<LocalDate> uniqueDays = new HashSet<>();
+        // Initialize map for 7 AM to 11 PM with nicely formatted labels (e.g., "07:00")
+        Map<String, Double> hourlySales = new LinkedHashMap<>();
+        for (int i = 7; i <= 23; i++) {
+            hourlySales.put(String.format("%02d:00", i), 0.0);
+        }
 
         for (Sale sale : allSales) {
-            if (sale.getSaleDateTime() != null) {
-                int hour = sale.getSaleDateTime().getHour();
-                uniqueDays.add(sale.getSaleDateTime().toLocalDate());
-                hourlyTotals.put(hour, hourlyTotals.getOrDefault(hour, 0.0) + sale.getTotalAmount());
-                hourCounts.put(hour, hourCounts.getOrDefault(hour, 0) + 1);
+            LocalDateTime saleTime = sale.getSaleDateTime();
+
+            // Enforce the September 10th cutoff
+            if (saleTime == null || saleTime.isBefore(cutoffDate)) {
+                continue;
+            }
+
+            int hour = saleTime.getHour();
+
+            // Only record if between 7 AM and 11 PM
+            if (hour >= 7 && hour <= 23) {
+                String timeLabel = String.format("%02d:00", hour);
+                hourlySales.put(timeLabel, hourlySales.get(timeLabel) + sale.getTotalAmount());
             }
         }
-        int totalDays = Math.max(1, uniqueDays.size());
 
-        // Compute daily average per hour (Total Revenue at Hour X / Total Days Recorded)
-        Map<String, Double> dailyHourAverages = new TreeMap<>();        for (int hour = 8; hour <= 23; hour++) { // e.g., operating hours 8 AM to 9 PM
-            double totalRevenueAtHour = hourlyTotals.getOrDefault(hour, 0.0);
-            double dailyAverage = totalRevenueAtHour / totalDays;
-            // Format label nicely (e.g., "08:00", "14:00")
-            String timeLabel = String.format("%02d:00", hour);
-            dailyHourAverages.put(timeLabel, dailyAverage);
-        }
-
-        return ResponseEntity.ok(dailyHourAverages);    }
+        // Return the correct map!
+        return ResponseEntity.ok(hourlySales);
+    }
     
 
     // ==========================================

@@ -21,6 +21,30 @@
             </div>
 
             <div class="row g-4">
+                <div class="row mb-4">
+                    <div class="col-12 col-md-4">
+                        <div class="card bg-dark text-light border-secondary shadow-sm">
+                            <div class="card-body d-flex align-items-center">
+
+                                <!-- Icon Section -->
+                                <div class="me-3 text-success">
+                                    <i class="fas fa-coins fa-3x"></i>
+                                </div>
+
+                                <!-- Data Section -->
+                                <div>
+                                    <h6 class="card-title text-muted mb-1 text-uppercase fw-bold">Today's Sales</h6>
+                                    <h3 class="mb-0 fw-bold">
+                                        <!-- Formats the number with commas and 2 decimal places -->
+                                        KES <span th:text="${#numbers.formatDecimal(todaySalesTotal, 1, 'COMMA', 2, 'POINT')}">0.00</span>
+                                    </h3>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="col-md-4">
                     <div class="card shadow-sm border-0 h-100 bg-warning text-dark">
                         <div class="card-body text-center d-flex flex-column justify-content-center">

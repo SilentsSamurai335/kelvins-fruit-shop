@@ -4,8 +4,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Expenses - Fruity Fusion</title>
     <th:block th:replace="~{fragments :: styles}"></th:block>
+
+    <style>
+        @media screen {
+            .print-only { display: none !important; }
+        }
+
+        @media print {
+            /* Hide sidebar, action buttons, and forms */
+            .sidebar, .no-print, form { display: none !important; }
+
+            /* Force main content to take the whole page */
+            .main-content {
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            /* Remove scrollbars so all table rows print across multiple pages */
+            body, .main-content, .table-responsive, .accordion-collapse {
+                overflow: visible !important;
+                height: auto !important;
+            }
+
+            /* Ensure accordions are open for printing */
+            .collapse { display: block !important; }
+        }
+    </style>
 </head>
 <body>
+<div class="print-only text-center mb-4">
+    <!-- Replace the src with your actual KFF logo path -->
+    <img src="/images/logo-icon.png" alt="Fruity Fusion Logo" style="height: 80px;">    <h2 class="mt-2">Fruity Fusion - Official Report</h2>
+</div>
 <div class="d-flex" id="wrapper">
     <div th:replace="~{fragments :: sidebar(activePage='expenses')}"></div>
 
@@ -14,121 +45,128 @@
             <div th:replace="~{fragments :: topbar}"></div>
 
             <div class="card mb-4 border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="row g-3 align-items-end">
+                <div class="card mb-4 no-print">
+                    <div class="card-body">
+                        <div class="row g-3 align-items-end">
 
-                        <!-- 1. TIME PERIOD QUICK LINKS (These bypass forms entirely) -->
-                        <div class="col-auto">
-                            <label class="small text-muted fw-bold">Time Period</label><br>
-                            <div class="btn-group">
-                                <a href="/expenses?period=today" class="btn btn-sm btn-outline-secondary">Today</a>
-                                <a href="/expenses?period=week" class="btn btn-sm btn-outline-secondary">Week</a>
-                                <a href="/expenses?period=month" class="btn btn-sm btn-outline-secondary">Month</a>
-                                <a href="/expenses?period=all" class="btn btn-sm btn-outline-dark">All</a>
+                            <!-- 1. TIME PERIOD QUICK LINKS (These bypass forms entirely) -->
+                            <div class="col-auto">
+                                <label class="small text-muted fw-bold">Time Period</label><br>
+                                <div class="btn-group">
+                                    <a href="/expenses?period=today" class="btn btn-sm btn-outline-secondary">Today</a>
+                                    <a href="/expenses?period=week" class="btn btn-sm btn-outline-secondary">Week</a>
+                                    <a href="/expenses?period=month" class="btn btn-sm btn-outline-secondary">Month</a>
+                                    <a href="/expenses?period=all" class="btn btn-sm btn-outline-dark">All</a>
+                                </div>
                             </div>
-                        </div>
 
-                        <!-- 2. SPECIFIC DATE FORM -->
-                        <div class="col-auto">
-                            <form action="/expenses" method="get" class="d-flex align-items-end gap-2 mb-0">
-                                <div>
-                                    <label class="small text-muted fw-bold">Specific Date</label>
-                                    <input type="date" name="date" class="form-control form-control-sm" style="width: 130px;"
-                                           th:value="${selectedDate}" title="Pick a specific date">
-                                </div>
-                                <button type="submit" class="btn btn-sm btn-dark">Filter</button>
-                            </form>
-                        </div>
-
-                        <!-- 3. ARCHIVE FORM (Month + Year) -->
-                        <div class="col-auto">
-                            <form action="/expenses" method="get" class="d-flex align-items-end gap-2 mb-0">
-                                <div>
-                                    <label class="small text-muted fw-bold">Archive</label>
-                                    <div class="input-group input-group-sm">
-                                        <select name="month" class="form-select" style="width: 90px;">
-                                            <option value="1" th:selected="${selectedMonth == 1}">Jan</option>
-                                            <option value="2" th:selected="${selectedMonth == 2}">Feb</option>
-                                            <option value="3" th:selected="${selectedMonth == 3}">Mar</option>
-                                            <option value="4" th:selected="${selectedMonth == 4}">Apr</option>
-                                            <option value="5" th:selected="${selectedMonth == 5}">May</option>
-                                            <option value="6" th:selected="${selectedMonth == 6}">Jun</option>
-                                            <option value="7" th:selected="${selectedMonth == 7}">Jul</option>
-                                            <option value="8" th:selected="${selectedMonth == 8}">Aug</option>
-                                            <option value="9" th:selected="${selectedMonth == 9}">Sep</option>
-                                            <option value="10" th:selected="${selectedMonth == 10}">Oct</option>
-                                            <option value="11" th:selected="${selectedMonth == 11}">Nov</option>
-                                            <option value="12" th:selected="${selectedMonth == 12}">Dec</option>
-                                        </select>
-                                        <input type="number" name="year" class="form-control" style="width: 70px;" th:value="${selectedYear}">
+                            <!-- 2. SPECIFIC DATE FORM -->
+                            <div class="col-auto">
+                                <form action="/expenses" method="get" class="d-flex align-items-end gap-2 mb-0">
+                                    <div>
+                                        <label class="small text-muted fw-bold">Specific Date</label>
+                                        <input type="date" name="date" class="form-control form-control-sm" style="width: 130px;"
+                                               th:value="${selectedDate}" title="Pick a specific date">
                                     </div>
-                                </div>
-                                <button type="submit" class="btn btn-sm btn-dark">Filter</button>
-                            </form>
+                                    <button type="submit" class="btn btn-sm btn-dark">Filter</button>
+                                </form>
+                            </div>
+
+                            <!-- 3. ARCHIVE FORM (Month + Year) -->
+                            <div class="col-auto">
+                                <form action="/expenses" method="get" class="d-flex align-items-end gap-2 mb-0">
+                                    <div>
+                                        <label class="small text-muted fw-bold">Archive</label>
+                                        <div class="input-group input-group-sm">
+                                            <select name="month" class="form-select" style="width: 90px;">
+                                                <option value="1" th:selected="${selectedMonth == 1}">Jan</option>
+                                                <option value="2" th:selected="${selectedMonth == 2}">Feb</option>
+                                                <option value="3" th:selected="${selectedMonth == 3}">Mar</option>
+                                                <option value="4" th:selected="${selectedMonth == 4}">Apr</option>
+                                                <option value="5" th:selected="${selectedMonth == 5}">May</option>
+                                                <option value="6" th:selected="${selectedMonth == 6}">Jun</option>
+                                                <option value="7" th:selected="${selectedMonth == 7}">Jul</option>
+                                                <option value="8" th:selected="${selectedMonth == 8}">Aug</option>
+                                                <option value="9" th:selected="${selectedMonth == 9}">Sep</option>
+                                                <option value="10" th:selected="${selectedMonth == 10}">Oct</option>
+                                                <option value="11" th:selected="${selectedMonth == 11}">Nov</option>
+                                                <option value="12" th:selected="${selectedMonth == 12}">Dec</option>
+                                            </select>
+                                            <input type="number" name="year" class="form-control" style="width: 70px;" th:value="${selectedYear}">
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-sm btn-dark">Filter</button>
+                                </form>
+                            </div>
+
+                            <!-- SPECIFIC YEAR FORM -->
+                            <div class="col-auto">
+                                <form action="/expenses" method="get" class="d-flex align-items-end gap-2 mb-0">
+                                    <div>
+                                        <label class="small text-muted fw-bold">Specific Year</label>
+                                        <input type="number" name="specificYear" class="form-control form-control-sm" style="width: 80px;" placeholder="YYYY">
+                                    </div>
+                                    <button type="submit" class="btn btn-sm btn-dark">Filter</button>
+                                </form>
+                            </div>
+
+                            <!-- 4. CATEGORY FORM -->
+                            <div class="col-auto">
+                                <form action="/expenses" method="get" class="d-flex align-items-end gap-2 mb-0">
+                                    <div>
+                                        <label class="small text-muted fw-bold">Filter Category</label>
+                                        <select name="category" class="form-select form-select-sm">
+                                            <option value="ALL">Show Everything</option>
+
+                                            <optgroup label="Stocks">
+                                                <option value="GROUP_STOCKS" th:selected="${selectedCategory == 'GROUP_STOCKS'}">All Stocks</option>
+                                                <option value="Sugar" th:selected="${selectedCategory == 'Sugar'}">Sugar</option>
+                                                <option value="Juice Ingredients" th:selected="${selectedCategory == 'Juice Ingredients'}">Juice Ingredients</option>
+                                                <option value="Uji Ingredients" th:selected="${selectedCategory == 'Uji Ingredients'}">Uji Ingredients</option>
+                                                <option value="Coffee Ingredients" th:selected="${selectedCategory == 'Coffee Ingredients'}">Coffee Ingredients</option>
+                                                <option value="Snacks" th:selected="${selectedCategory == 'Snacks'}">Snacks</option>
+                                                <option value="Spices" th:selected="${selectedCategory == 'Spices'}">Spices</option>
+                                                <option value="Packaging" th:selected="${selectedCategory == 'Packaging'}">Packaging</option>
+                                                <option value="Blending Water" th:selected="${selectedCategory == 'Blending Water'}">Blending Water</option>
+                                            </optgroup>
+
+                                            <optgroup label="Utilities">
+                                                <option value="GROUP_UTILITIES" th:selected="${selectedCategory == 'GROUP_UTILITIES'}">All Utilities</option>
+                                                <option value="Rent" th:selected="${selectedCategory == 'Rent'}">Rent</option>
+                                                <option value="Gas" th:selected="${selectedCategory == 'Gas'}">Gas</option>
+                                                <option value="Tap Water" th:selected="${selectedCategory == 'Tap Water'}">Tap Water</option>
+                                                <option value="Token" th:selected="${selectedCategory == 'Token'}">Electricity Token</option>
+                                                <option value="Garbage" th:selected="${selectedCategory == 'Garbage'}">Garbage</option>
+                                            </optgroup>
+
+                                            <optgroup label="Operations">
+                                                <option value="GROUP_OPERATIONS" th:selected="${selectedCategory == 'GROUP_OPERATION'}">All Operations</option>
+                                                <option value="Transport" th:selected="${selectedCategory == 'Transport'}">Transport</option>
+                                                <option value="Lunch" th:selected="${selectedCategory == 'Lunch'}">Lunch</option>
+                                                <option value="Maintenance" th:selected="${selectedCategory == 'Maintenance'}">Maintenance</option>
+                                            </optgroup>
+
+                                            <optgroup label="Honorarium">
+                                                <option value="Honorarium" th:selected="${selectedCategory == 'Salary'}">Honorarium</option>
+                                            </optgroup>
+
+                                            <optgroup label="Other Expenses">
+                                                <option value="Other" th:selected="${selectedCategory == 'Other'}">Other</option>
+                                            </optgroup>
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="btn btn-sm btn-dark">Filter</button>
+                                </form>
+                            </div>
+
+                            <button onclick="window.print()" class="btn btn-primary no-print">
+                                <i class="fas fa-print"></i> Print Report
+                            </button>
+
                         </div>
-
-                        <!-- SPECIFIC YEAR FORM -->
-                        <div class="col-auto">
-                            <form action="/expenses" method="get" class="d-flex align-items-end gap-2 mb-0">
-                                <div>
-                                    <label class="small text-muted fw-bold">Specific Year</label>
-                                    <input type="number" name="specificYear" class="form-control form-control-sm" style="width: 80px;" placeholder="YYYY">
-                                </div>
-                                <button type="submit" class="btn btn-sm btn-dark">Filter</button>
-                            </form>
-                        </div>
-
-                        <!-- 4. CATEGORY FORM -->
-                        <div class="col-auto">
-                            <form action="/expenses" method="get" class="d-flex align-items-end gap-2 mb-0">
-                                <div>
-                                    <label class="small text-muted fw-bold">Filter Category</label>
-                                    <select name="category" class="form-select form-select-sm">
-                                        <option value="ALL">Show Everything</option>
-
-                                        <optgroup label="Stocks">
-                                            <option value="GROUP_STOCKS" th:selected="${selectedCategory == 'GROUP_STOCKS'}">All Stocks</option>
-                                            <option value="Sugar" th:selected="${selectedCategory == 'Sugar'}">Sugar</option>
-                                            <option value="Juice Ingredients" th:selected="${selectedCategory == 'Juice Ingredients'}">Juice Ingredients</option>
-                                            <option value="Uji Ingredients" th:selected="${selectedCategory == 'Uji Ingredients'}">Uji Ingredients</option>
-                                            <option value="Coffee Ingredients" th:selected="${selectedCategory == 'Coffee Ingredients'}">Coffee Ingredients</option>
-                                            <option value="Snacks" th:selected="${selectedCategory == 'Snacks'}">Snacks</option>
-                                            <option value="Spices" th:selected="${selectedCategory == 'Spices'}">Spices</option>
-                                            <option value="Packaging" th:selected="${selectedCategory == 'Packaging'}">Packaging</option>
-                                            <option value="Blending Water" th:selected="${selectedCategory == 'Blending Water'}">Blending Water</option>
-                                        </optgroup>
-
-                                        <optgroup label="Utilities">
-                                            <option value="GROUP_UTILITIES" th:selected="${selectedCategory == 'GROUP_UTILITIES'}">All Utilities</option>
-                                            <option value="Rent" th:selected="${selectedCategory == 'Rent'}">Rent</option>
-                                            <option value="Gas" th:selected="${selectedCategory == 'Gas'}">Gas</option>
-                                            <option value="Tap Water" th:selected="${selectedCategory == 'Tap Water'}">Tap Water</option>
-                                            <option value="Token" th:selected="${selectedCategory == 'Token'}">Electricity Token</option>
-                                            <option value="Garbage" th:selected="${selectedCategory == 'Garbage'}">Garbage</option>
-                                        </optgroup>
-
-                                        <optgroup label="Operations">
-                                            <option value="GROUP_OPERATIONS" th:selected="${selectedCategory == 'GROUP_OPERATION'}">All Operations</option>
-                                            <option value="Transport" th:selected="${selectedCategory == 'Transport'}">Transport</option>
-                                            <option value="Lunch" th:selected="${selectedCategory == 'Lunch'}">Lunch</option>
-                                            <option value="Maintenance" th:selected="${selectedCategory == 'Maintenance'}">Maintenance</option>
-                                        </optgroup>
-
-                                        <optgroup label="Honorarium">
-                                            <option value="Honorarium" th:selected="${selectedCategory == 'Salary'}">Honorarium</option>
-                                        </optgroup>
-
-                                        <optgroup label="Other Expenses">
-                                            <option value="Other" th:selected="${selectedCategory == 'Other'}">Other</option>
-                                        </optgroup>
-                                    </select>
-                                </div>
-                                <button type="submit" class="btn btn-sm btn-dark">Filter</button>
-                            </form>
-                        </div>
-
                     </div>
                 </div>
+
                 <div class="card-footer d-flex justify-content-between align-items-center">
                     <span class="text-muted small" th:text="'Viewing: ' + ${periodTitle}"></span>
                     <span class="fw-bold text-danger fs-5" th:text="'Total: KES ' + ${totalExpense}"></span>
@@ -138,174 +176,179 @@
             <h2 class="fw-bold mb-4">📉 Expense Tracker</h2>
 
             <div class="card mb-4 border-0 shadow-sm">
-                <div class="card-header bg-light">
-                    <h5 class="card-title text-dark mb-0 fw-bold">Record New Purchase</h5>
-                </div>
-                <div class="card-body">
+                <div class="card mb-4 no-print">
+                    <div class="card-header bg-light">
+                        <h5 class="card-title text-dark mb-0 fw-bold">Record New Purchase</h5>
+                    </div>
+                    <div class="card-body">
 
-                    <form th:action="@{/save-expense}" th:object="${newExpense}" method="post" onsubmit="preFillSugarName()">
-                        <input type="hidden" th:field="*{id}" />
+                        <form th:action="@{/save-expense}" th:object="${newExpense}" method="post" onsubmit="preFillSugarName()">
+                            <input type="hidden" th:field="*{id}" />
 
-                        <div class="mb-3">
-                            <label class="fw-bold">Category</label>
-                            <select th:field="*{category}" id="categorySelect" class="form-select" onchange="toggleFields()" required>
-                                <option value="" disabled selected>Select Category...</option>
-
-                                <optgroup label="Stocks">
-                                    <option value="Sugar">Sugar</option>
-                                    <option value="Juice Ingredients">Juice Ingredients</option>
-                                    <option value="Uji Ingredients">Uji Ingredients</option>
-                                    <option value="Coffee Ingredients">Coffee Ingredients</option>
-                                    <option value="Snacks">Snacks</option>
-                                    <option value="Spices">Spices</option>
-                                    <option value="Packaging">Packaging</option>
-                                    <option value="Blending Water">Blending Water</option>
-
-                                </optgroup>
-
-                                <optgroup label="Utilities">
-                                    <option value="Rent">Rent</option>
-                                    <option value="Gas">Gas</option>
-                                    <option value="Tap Water">Tap Water</option>
-                                    <option value="Token">Electricity Token</option>
-                                    <option value="Garbage">Garbage</option>
-                                </optgroup>
-
-                                <optgroup label="Operations">
-                                    <option value="Transport">Transport</option>
-                                    <option value="Lunch">Lunch</option>
-                                    <option value="Maintenance">Maintenance</option>
-                                </optgroup>
-
-                                <optgroup label="Honorarium">
-                                    <option value="Honorarium" >Honorarium</option>
-                                </optgroup>
-
-                                <optgroup label="Other Expenses">
-                                    <option value="Other">Other</option>
-                                </optgroup>
-                            </select>
-                        </div>
-
-                        <div class="mb-3" id="nameField">
-                            <label>Item Name / Details</label>
-                            <input type="text" th:field="*{itemName}" id="itemNameInput" class="form-control" placeholder="e.g. Oranges, Rent Payment">
-                        </div>
-
-                        <div class="mb-3" id="quantityField" style="display: none;">
-                            <label>Quantity / Weight</label>
-                            <input type="text" th:field="*{quantity}" class="form-control" placeholder="e.g. 5 kgs">
-                        </div>
-
-                        <div class="mb-3" id="unitsField" style="display: none;">
-                            <label>Meter Units</label>
-                            <input type="number" step="0.1" th:field="*{units}" class="form-control" placeholder="e.g. 50.5 Units">
-                        </div>
-
-                        <div id="transportFields" style="display: none;">
-                            <div class="row">
-                                <div class="col-md-4 mb-3">
-                                    <label>No. of Trips</label>
-                                    <input type="number" th:field="*{trips}" class="form-control">
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <label>From</label>
-                                    <input type="text" th:field="*{startLocation}" class="form-control" placeholder="Origin">
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <label>To</label>
-                                    <input type="text" th:field="*{endLocation}" class="form-control" placeholder="Destination">
-                                </div>
-                            </div>
                             <div class="mb-3">
-                                <label>Transport Description</label>
-                                <input type="text" th:field="*{description}" class="form-control" placeholder="e.g. Carrying Fruits">
+                                <label class="fw-bold">Category</label>
+                                <select th:field="*{category}" id="categorySelect" class="form-select" onchange="toggleFields()" required>
+                                    <option value="" disabled selected>Select Category...</option>
+
+                                    <optgroup label="Stocks">
+                                        <option value="Sugar">Sugar</option>
+                                        <option value="Juice Ingredients">Juice Ingredients</option>
+                                        <option value="Uji Ingredients">Uji Ingredients</option>
+                                        <option value="Coffee Ingredients">Coffee Ingredients</option>
+                                        <option value="Snacks">Snacks</option>
+                                        <option value="Spices">Spices</option>
+                                        <option value="Packaging">Packaging</option>
+                                        <option value="Blending Water">Blending Water</option>
+
+                                    </optgroup>
+
+                                    <optgroup label="Utilities">
+                                        <option value="Rent">Rent</option>
+                                        <option value="Gas">Gas</option>
+                                        <option value="Tap Water">Tap Water</option>
+                                        <option value="Token">Electricity Token</option>
+                                        <option value="Garbage">Garbage</option>
+                                    </optgroup>
+
+                                    <optgroup label="Operations">
+                                        <option value="Transport">Transport</option>
+                                        <option value="Lunch">Lunch</option>
+                                        <option value="Maintenance">Maintenance</option>
+                                    </optgroup>
+
+                                    <optgroup label="Honorarium">
+                                        <option value="Honorarium" >Honorarium</option>
+                                    </optgroup>
+
+                                    <optgroup label="Other Expenses">
+                                        <option value="Other">Other</option>
+                                    </optgroup>
+                                </select>
                             </div>
-                        </div>
 
-                        <div class="mb-3">
-                            <label class="fw-bold text-danger">Total Cost (KES)</label>
-                            <input type="number" step="0.01" th:field="*{amount}" class="form-control" required>
-                        </div>
+                            <div class="mb-3" id="nameField">
+                                <label>Item Name / Details</label>
+                                <input type="text" th:field="*{itemName}" id="itemNameInput" class="form-control" placeholder="e.g. Oranges, Rent Payment">
+                            </div>
 
-                        <!-- Visible ONLY to Admins -->
-                        <div class="mb-3" sec:authorize="hasRole('ADMIN')">
-                            <label for="manualDate" class="form-label fw-bold">Transaction Date</label>
-                            <input type="date" id="manualDate" name="manualDate" class="form-control"
-                                   th:max="${#dates.format(#dates.createNow(), 'yyyy-MM-dd')}"
-                                   th:value="${#dates.format(#dates.createNow(), 'yyyy-MM-dd')}">
-                        </div>
+                            <div class="mb-3" id="quantityField" style="display: none;">
+                                <label>Quantity / Weight</label>
+                                <input type="text" th:field="*{quantity}" class="form-control" placeholder="e.g. 5 kgs">
+                            </div>
 
-                        <!-- Fallback for cashiers -->
-                        <input type="hidden" name="manualDate"
-                               th:value="${#dates.format(#dates.createNow(), 'yyyy-MM-dd')}"
-                               sec:authorize="!hasRole('ADMIN')">
-                        <button type="submit" class="btn btn-dark w-100 fw-bold">Save Expense</button>
-                    </form>
-                </div>
-            </div>
+                            <div class="mb-3" id="unitsField" style="display: none;">
+                                <label>Meter Units</label>
+                                <input type="number" step="0.1" th:field="*{units}" class="form-control" placeholder="e.g. 50.5 Units">
+                            </div>
 
-            <div class="card shadow-sm border-0">
-                <div class="card-body p-0">
-                    <div class="accordion" id="expensesAccordion">
-                        <!-- Loop through each Month/Year group -->
-                        <div class="accordion-item bg-dark border-secondary" th:each="entry, stat : ${groupedExpenses}">
-
-                            <!-- Accordion Tab Header -->
-                            <h2 class="accordion-header" th:id="'heading' + ${stat.index}">
-                                <button class="accordion-button bg-dark text-light border-secondary"
-                                        th:classappend="${!stat.first} ? 'collapsed'"
-                                        type="button" data-bs-toggle="collapse"
-                                        th:data-bs-target="'#collapse' + ${stat.index}"
-                                        aria-expanded="true"
-                                        th:aria-controls="'collapse' + ${stat.index}">
-
-                                    <div class="d-flex justify-content-between w-100 pe-3">
-                                        <span th:text="${entry.key}" class="fw-bold text-uppercase">MONTH YEAR</span>
-                                        <!-- SpEL projection extracts the 'amount' field from the list and sums it -->
-                                        <span class="text-danger fw-bold">
-                        Total: KES <span th:text="${#aggregates.sum(entry.value.![amount])}">0.0</span>
-                    </span>
+                            <div id="transportFields" style="display: none;">
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label>No. of Trips</label>
+                                        <input type="number" th:field="*{trips}" class="form-control">
                                     </div>
-                                </button>
-                            </h2>
-
-                            <!-- Accordion Body (The Table) -->
-                            <div th:id="'collapse' + ${stat.index}" class="accordion-collapse collapse"
-                                 th:classappend="${stat.first} ? 'show'"
-                                 th:aria-labelledby="'heading' + ${stat.index}">
-                                <div class="accordion-body p-0">
-                                    <table class="table table-dark table-hover mb-0 border-0">
-                                        <thead>
-                                        <tr>
-                                            <th>Date</th>
-                                            <th>Category</th>
-                                            <th>Details</th>
-                                            <th>Cost</th>
-                                            <th>Action</th>
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-                                        <!-- Loop through the expenses inside this specific month -->
-                                        <tr th:each="exp : ${entry.value}">
-                                            <td th:text="${exp.date}"></td>
-                                            <td th:text="${exp.category}"></td>
-                                            <td th:text="${exp.itemName}"></td>
-                                            <td class="text-danger fw-bold" th:text="${exp.amount}"></td>
-                                            <td>
-                                                <a th:href="@{/expenses/edit/{id}(id=${exp.id})}" class="text-primary me-3"><i class="fas fa-pencil-alt"></i></a>
-                                                <a th:href="@{/expenses/delete/{id}(id=${exp.id})}" class="text-danger" onclick="return confirm('Are you sure?');"><i class="fas fa-trash"></i></a>
-                                            </td>
-                                        </tr>
-                                        </tbody>
-                                    </table>
+                                    <div class="col-md-4 mb-3">
+                                        <label>From</label>
+                                        <input type="text" th:field="*{startLocation}" class="form-control" placeholder="Origin">
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label>To</label>
+                                        <input type="text" th:field="*{endLocation}" class="form-control" placeholder="Destination">
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label>Transport Description</label>
+                                    <input type="text" th:field="*{description}" class="form-control" placeholder="e.g. Carrying Fruits">
                                 </div>
                             </div>
 
+                            <div class="mb-3">
+                                <label class="fw-bold text-danger">Total Cost (KES)</label>
+                                <input type="number" step="0.01" th:field="*{amount}" class="form-control" required>
+                            </div>
+
+                            <!-- Visible ONLY to Admins -->
+                            <div class="mb-3" sec:authorize="hasRole('ADMIN')">
+                                <label for="manualDate" class="form-label fw-bold">Transaction Date</label>
+                                <input type="date" id="manualDate" name="manualDate" class="form-control"
+                                       th:max="${#dates.format(#dates.createNow(), 'yyyy-MM-dd')}"
+                                       th:value="${#dates.format(#dates.createNow(), 'yyyy-MM-dd')}">
+                            </div>
+
+                            <!-- Fallback for cashiers -->
+                            <input type="hidden" name="manualDate"
+                                   th:value="${#dates.format(#dates.createNow(), 'yyyy-MM-dd')}"
+                                   sec:authorize="!hasRole('ADMIN')">
+                            <button type="submit" class="btn btn-dark w-100 fw-bold">Save Expense</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm border-0">
+                    <div class="card-body p-0">
+                        <div class="accordion" id="salesAccordion" data-bs-theme="dark">                        <!-- Loop through each Month/Year group -->
+                            <div class="accordion-item bg-dark border-secondary" th:each="entry, stat : ${groupedExpenses}">
+
+                                <!-- Accordion Tab Header -->
+                                <h2 class="accordion-header" th:id="'heading' + ${stat.index}">
+                                    <button class="accordion-button bg-dark text-light border-secondary"
+                                            th:classappend="${!stat.first} ? 'collapsed'"
+                                            type="button" data-bs-toggle="collapse"
+                                            th:data-bs-target="'#collapse' + ${stat.index}"
+                                            aria-expanded="true"
+                                            th:aria-controls="'collapse' + ${stat.index}">
+
+                                        <div class="d-flex justify-content-between w-100 pe-3">
+                                            <span th:text="${entry.key}" class="fw-bold text-uppercase">MONTH YEAR</span>
+                                            <!-- SpEL projection extracts the 'amount' field from the list and sums it -->
+                                            <span class="text-danger fw-bold">
+                                                Total: KES <span th:text="${#aggregates.sum(entry.value.![amount])}">0.0</span>
+                                            </span>
+                                        </div>
+                                    </button>
+                                </h2>
+
+                                <!-- Accordion Body (The Table) -->
+                                <div th:id="'collapse' + ${stat.index}" class="accordion-collapse collapse"
+                                     th:classappend="${stat.first} ? 'show'"
+                                     th:aria-labelledby="'heading' + ${stat.index}">
+                                    <div class="accordion-body p-0">
+                                        <table class="table table-dark table-hover mb-0 border-0">
+                                            <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Category</th>
+                                                <th>Details</th>
+                                                <th>Cost</th>
+                                                <th>
+                                                    <div class="no-print">
+                                                    </div>
+                                                    Action
+                                                </th>
+
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            <!-- Loop through the expenses inside this specific month -->
+                                            <tr th:each="exp : ${entry.value}">
+                                                <td th:text="${exp.date}"></td>
+                                                <td th:text="${exp.category}"></td>
+                                                <td th:text="${exp.itemName}"></td>
+                                                <td class="text-danger fw-bold" th:text="${exp.amount}"></td>
+                                                <td class="no-print">
+                                                    <a th:href="@{/expenses/edit/{id}(id=${exp.id})}" class="text-primary me-3"><i class="fas fa-pencil-alt"></i></a>
+                                                    <a th:href="@{/expenses/delete/{id}(id=${exp.id})}" class="text-danger" onclick="return confirm('Are you sure?');"><i class="fas fa-trash"></i></a>
+                                                </td>
+                                            </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
         </div>
     </div>

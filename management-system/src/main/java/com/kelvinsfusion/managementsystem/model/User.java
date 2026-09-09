@@ -18,6 +18,12 @@ public class User {
     private String role; // "ADMIN" or "STAFF"
     private String fullName; // "John Doe"
 
+    @Column(name = "national_id")
+    private String nationalId;
+
+    @Column(name = "phone_number")
+    private String phoneNumber;
+
     // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -29,4 +35,8 @@ public class User {
     public void setRole(String role) { this.role = role; }
     public String getFullName() { return fullName; }
     public void setFullName(String fullName) { this.fullName = fullName; }
+    public String getNationalId() { return nationalId; }
+    public void setNationalId(String nationalId) { this.nationalId = nationalId; }
+    public String getPhoneNumber() { return phoneNumber; }
+    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
 }

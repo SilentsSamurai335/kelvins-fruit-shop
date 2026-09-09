@@ -50,68 +50,109 @@
 
             <h2 class="fw-bold mb-4">👥 Manage Staff</h2>
 
-            <div class="card mb-4 border-0 shadow-sm">
-                <div class="card-header">
-                    <h5 class="mb-0 fw-bold">Create New Account</h5>
-                </div>
-                <div class="card-body">
-                    <form th:action="@{/save-user}" th:object="${newUser}" method="post" class="row g-3">
-                        <div class="col-md-4">
-                            <label class="fw-bold small opacity-75">Full Name</label>
-                            <input type="text" th:field="*{fullName}" class="form-control" placeholder="e.g. John Doe" required>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="fw-bold small opacity-75">Username</label>
-                            <input type="text" th:field="*{username}" class="form-control" placeholder="e.g. john" required>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="fw-bold small opacity-75">Password</label>
-                            <input type="text" th:field="*{password}" class="form-control" placeholder="e.g. 1234" required>
-                        </div>
-                        <div class="col-md-2 align-self-end">
-                            <button type="submit" class="btn btn-primary w-100 fw-bold">Create</button>
-                        </div>
-                    </form>
-                </div>
+            <!-- Add New Staff Button -->
+            <div class="d-flex justify-content-end mb-3">
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#registerStaffModal">
+                    <i class="fas fa-user-plus"></i> Add New Staff
+                </button>
             </div>
 
             <div class="card shadow-sm border-0">
                 <div class="card-body p-0">
-                    <table class="table table-hover mb-0 align-middle">
-                        <thead class="bg-light">
+                    <table class="table text-light">
+                        <thead>
                         <tr>
+                            <th>National ID</th>
                             <th>Full Name</th>
+                            <th>Phone Number</th>
                             <th>Username</th>
                             <th>Role</th>
                             <th>Actions</th>
                         </tr>
                         </thead>
                         <tbody>
-                        <tr th:each="user : ${listUsers}">
-                            <td th:text="${user.fullName}" class="fw-bold"></td>
+                        <!-- FIX 1: Changed userName to users to match the controller -->
+                        <tr th:each="user : ${users}">
+
+                            <td th:text="${user.nationalId}"></td>
+                            <td th:text="${user.fullName}"></td>
+                            <td th:text="${user.phoneNumber}"></td>
+
                             <td>
-                                <span class="badge bg-light text-dark border" th:text="${user.username}"></span>
+                                <span class="badge bg-secondary" th:text="${user.username}"></span>
                             </td>
+
                             <td>
-                                        <span th:text="${user.role}"
-                                              th:class="${user.role == 'ADMIN'} ? 'badge bg-danger' : 'badge bg-success'">
-                                        </span>
+                                <span class="badge" th:classappend="${user.role == 'ADMIN'} ? 'bg-danger' : 'bg-success'" th:text="${user.role}"></span>
                             </td>
+
                             <td>
-                                <a th:href="@{/edit-user/{id}(id=${user.id})}"
-                                   class="btn btn-sm btn-outline-primary"
-                                   style="margin-right: 5px;">Edit</a>
-                                <a th:href="@{/delete-user/{id}(id=${user.id})}"
-                                   class="btn btn-sm btn-danger"
-                                   th:if="${user.username != 'kelvin'}">
-                                    Delete
-                                </a>
+                                <!-- FIX 2: Updated the URLs to match your @GetMapping endpoints -->
+                                <a th:href="@{/edit-user/{id}(id=${user.id})}" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></a>
+                                <a th:if="${user.role != 'ADMIN'}" th:href="@{/delete-user/{id}(id=${user.id})}" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>
                             </td>
+
                         </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
+
+        </div>
+    </div>
+</div>
+<!-- Register Staff Modal -->
+<div class="modal fade" id="registerStaffModal" tabindex="-1" data-bs-theme="dark">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-light border-secondary">
+
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title"><i class="fas fa-user-plus text-primary"></i> Register Staff</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- The form must bind to the user object passed from your controller -->
+            <form th:action="@{/save-user}" th:object="${user}" method="post">
+
+                <!-- CRITICAL: Hidden ID field ensures it updates instead of creating a new user -->
+                <input type="hidden" th:field="*{id}" />
+
+                <div class="mb-3">
+                    <label class="form-label text-light fw-bold">Username</label>
+                    <input type="text" th:field="*{username}" class="form-control bg-dark text-light border-secondary" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-light fw-bold">Full Name</label>
+                    <input type="text" th:field="*{fullName}" class="form-control bg-dark text-light border-secondary" required>
+                </div>
+
+                <!-- NEW FIELD: National ID -->
+                <div class="mb-3">
+                    <label class="form-label text-light fw-bold">National ID</label>
+                    <input type="text" th:field="*{nationalId}" class="form-control bg-dark text-light border-secondary" required>
+                </div>
+
+                <!-- NEW FIELD: Phone Number -->
+                <div class="mb-3">
+                    <label class="form-label text-light fw-bold">Phone Number</label>
+                    <input type="text" th:field="*{phoneNumber}" class="form-control bg-dark text-light border-secondary" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-light fw-bold">Change Password</label>
+                    <!-- Notice we don't use required here so they can leave it blank -->
+                    <input type="password" th:field="*{password}" class="form-control bg-dark text-light border-secondary">
+                    <small class="text-light opacity-75">Leave blank to keep current password</small>
+                </div>
+
+                <!-- Buttons -->
+                <div class="d-flex justify-content-between mt-4">
+                    <!-- Make sure this href points to your actual staff list page URL -->
+                    <a th:href="@{/users}" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-success">Update Staff</button>
+                </div>
+            </form>
 
         </div>
     </div>

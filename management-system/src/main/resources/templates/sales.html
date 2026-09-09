@@ -15,9 +15,26 @@
             .table { width: 100% !important; border: 1px solid black !important; }
             .table td, .table th { border: 1px solid black !important; }
         }
+
+        @media screen {
+            .print-only { display: none !important; }
+        }
+
+        @media print {
+            .no-print, .sidebar { display: none !important; }
+
+            /* Forces the main content to take up the full page width when the sidebar hides */
+            .main-content { width: 100% !important; margin: 0 !important; }
+
+            /* Optional: Removes background colors to save printer ink */
+            body { background-color: white !important; color: black !important; }
+        }
     </style>
 </head>
 <body>
+<div class="print-only text-center mb-4">
+    <img src="/images/logo-icon.png" alt="Fruity Fusion Logo" style="height: 80px;">    <h2 class="mt-2">Fruity Fusion - Official Report</h2>
+</div>
 
 <div class="d-flex" id="wrapper">
 
@@ -131,53 +148,81 @@
 
             <div class="card shadow-sm border-0">
                 <div class="card-body p-0">
-                    <table class="table table-dark table-hover mb-0 border-0">
-                        <thead>
-                        <tr>
-                            <th>Time</th>
-                            <th>Item</th>
-                            <th>Qty</th>
-                            <th>Seller</th> <!-- NEW COLUMN -->
-                            <th>Method</th>
-                            <th>Amount</th>
-                            <th sec:authorize="hasAuthority('ROLE_ADMIN')">Action</th>                        </tr>
-                        </thead>
-                        <tbody>
-                        <tr th:each="sale : ${sales}">
-                            <td th:text="${#temporals.format(sale.saleDateTime, 'dd-MM HH:mm')}"></td>                            <td th:text="${sale.itemsSold}"></td>
-                            <td th:text="${sale.quantity}"></td>
+                    <div class="accordion" id="salesAccordion" data-bs-theme="dark">                        <div class="accordion-item" th:each="entry, stat : ${groupedSales}">
+                        <h2 class="accordion-header" th:id="'heading' + ${stat.index}">
+                            <button class="accordion-button collapsed bg-dark text-light" type="button" data-bs-toggle="collapse" th:data-bs-target="'#collapse' + ${stat.index}">
 
-                            <!-- NEW SELLER DATA -->
-                            <td>
-                                <!-- Fallback text 'Admin' if the seller is null on older records -->
-                                <span th:text="${sale.seller != null ? sale.seller : 'Admin'}"></span>
-                            </td>
-
-                            <td>
-                                <span class="badge" th:classappend="${sale.paymentMethod == 'Mpesa'} ? 'bg-success' : 'bg-secondary'" th:text="${sale.paymentMethod}"></span>
-                            </td>
-                            <td class="text-success fw-bold" th:text="${sale.totalAmount}"></td>
-
-                            <!-- ACTIONS (Edit + Void) -->
-                            <td sec:authorize="hasAuthority('ROLE_ADMIN')">
-                                <div class="d-flex gap-1">
-                                    <!-- NEW EDIT BUTTON -->
-                                    <a th:href="@{/sales/edit/{id}(id=${sale.id})}" class="btn btn-sm btn-outline-primary" title="Edit">
-                                        <i class="fas fa-pencil-alt"></i>
-                                    </a>
-
-                                    <!-- EXISTING VOID BUTTON -->
-                                    <a th:href="@{/sales/delete/{id}(id=${sale.id})}" class="btn btn-sm btn-outline-danger" title="Void" onclick="return confirm('Are you sure you want to void this sale?');">
-                                        <i class="fas fa-trash"></i>
-                                    </a>
+                                <!-- NEW WRAPPER DIV -->
+                                <div class="d-flex justify-content-between align-items-center w-100 me-3">
+                                    <strong th:text="${entry.key}">Month Year</strong>
+                                    <span class="badge bg-success" th:text="'KES ' + ${#numbers.formatDecimal(monthlyTotals.get(entry.key), 1, 'COMMA', 2, 'POINT')}">KES 0.00</span>
                                 </div>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                                <!-- END WRAPPER DIV -->
 
+                            </button>
+                        </h2>
+                            <div th:id="'collapse' + ${stat.index}" class="accordion-collapse collapse" data-bs-parent="#salesAccordion">
+                                <div class="accordion-body">
+                                    <table class="table table-dark table-hover mb-0 border-0">
+                                        <thead>
+                                        <tr>
+                                            <th>Time</th>
+                                            <th>Item</th>
+                                            <th>Qty</th>
+                                            <th>Seller</th>
+                                            <th>Method</th>
+                                            <th>Amount</th>
+                                            <th>
+                                                <div class="no-print"
+                                                     sec:authorize="hasAuthority('ROLE_ADMIN')">Action</div>
+                                            </th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        <tr th:each="sale : ${sales}">
+                                            <td th:text="${#temporals.format(sale.saleDateTime, 'dd-MM HH:mm')}"></td>                            <td th:text="${sale.itemsSold}"></td>
+                                            <td th:text="${sale.quantity}"></td>
+
+                                            <!-- NEW SELLER DATA -->
+                                            <td>
+                                                <!-- Fallback text 'Admin' if the seller is null on older records -->
+                                                <span th:text="${sale.seller != null ? sale.seller : 'Kelvin'}"></span>
+                                            </td>
+
+                                            <td>
+                                                <span class="badge"
+                                                      th:classappend="${#strings.containsIgnoreCase(sale.paymentMethod, 'MPESA')} ? 'bg-success' : 'bg-secondary'"
+                                                      th:text="${sale.paymentMethod}">
+                                                </span>
+                                            </td>
+                                            <td class="text-success fw-bold" th:text="${sale.totalAmount}"></td>
+
+                                            <!-- ACTIONS (Edit + Void) -->
+                                            <td> <div sec:authorize="hasAuthority('ROLE_ADMIN')"></div>
+                                                <div class="d-flex gap-1">
+                                                    <td class="no-print">
+                                                        <!-- NEW EDIT BUTTON -->
+                                                        <a th:href="@{/sales/edit/{id}(id=${sale.id})}" class="btn btn-sm btn-outline-primary" title="Edit">
+                                                            <i class="fas fa-pencil-alt"></i>
+                                                        </a>
+                                                    </td>
+
+                                                    <!-- EXISTING VOID BUTTON -->
+                                                    <td class="no-print">
+                                                        <a th:href="@{/sales/delete/{id}(id=${sale.id})}" class="btn btn-sm btn-outline-danger" title="Void" onclick="return confirm('Are you sure you want to void this sale?');">
+                                                            <i class="fas fa-trash"></i>
+                                                        </a>
+                                                    </td>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
         </div>
     </div>
 </div>

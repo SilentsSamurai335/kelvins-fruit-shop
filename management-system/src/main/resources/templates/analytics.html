@@ -44,6 +44,50 @@
                     <a href="/analytics?period=annually" class="btn btn-outline-secondary btn-sm filter-btn" th:classappend="${period == 'annually'} ? 'active'">Annually</a>
                     <a href="/analytics?period=all" class="btn btn-outline-secondary btn-sm filter-btn" th:classappend="${period == 'all'} ? 'active'">All Time</a>
                 </div>
+
+                <div class="d-flex flex-wrap gap-3 align-items-end mb-4">
+
+                    <!-- 1. Specific Month Filter -->
+                    <form th:action="@{/analytics}" method="get">
+                        <label class="form-label text-light small mb-1">Specific Month</label>
+                        <div class="input-group">
+                            <input type="month" name="specificMonth" class="form-control bg-dark text-light border-secondary">
+                            <button type="submit" class="btn btn-primary" title="Filter by Month"><i class="fas fa-filter"></i></button>
+                        </div>
+                    </form>
+
+                    <!-- 2. Specific Year Filter -->
+                    <form th:action="@{/analytics}" method="get">
+                        <label class="form-label text-light small mb-1">Specific Year</label>
+                        <div class="input-group">
+                            <input type="number" name="specificYear" class="form-control bg-dark text-light border-secondary" placeholder="YYYY" min="2020" max="2100">
+                            <button type="submit" class="btn btn-primary" title="Filter by Year"><i class="fas fa-filter"></i></button>
+                        </div>
+                    </form>
+
+                    <!-- 3. Complex Filter (Day + Month) -->
+                    <form th:action="@{/analytics}" method="get" class="d-flex align-items-end gap-2 border border-secondary p-2 rounded">
+                        <div>
+                            <label class="form-label text-light small mb-1">Day of Week</label>
+                            <select name="dayOfWeek" class="form-select bg-dark text-light border-secondary">
+                                <option value="">Any</option>
+                                <option value="MONDAY">Monday</option>
+                                <option value="TUESDAY">Tuesday</option>
+                                <option value="WEDNESDAY">Wednesday</option>
+                                <option value="THURSDAY">Thursday</option>
+                                <option value="FRIDAY">Friday</option>
+                                <option value="SATURDAY">Saturday</option>
+                                <option value="SUNDAY">Sunday</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label text-light small mb-1">In Month</label>
+                            <input type="month" name="complexMonth" class="form-control bg-dark text-light border-secondary">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Apply</button>
+                    </form>
+
+                </div>
                 <button onclick="exportDocx()" class="btn btn-primary fw-bold shadow-sm"><i class="fas fa-file-word me-2"></i>Download Report</button>
             </div>
 
