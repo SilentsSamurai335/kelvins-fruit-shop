@@ -62,15 +62,14 @@
             You have been successfully logged out.
         </div>
 
-        <div class="form-floating mb-3 text-start">
-            <!-- Your fragments.html already applies dark backgrounds to .form-control automatically -->
-            <input type="text" name="username" class="form-control" id="usernameInput" placeholder="admin" required>
-            <label for="usernameInput" class="text-secondary">Username</label>
+        <div class="mb-3 text-start">
+            <label for="usernameInput" class="form-label text-secondary fw-bold small mb-1">Username</label>
+            <input type="text" name="username" class="form-control bg-dark text-light border-secondary" id="usernameInput" placeholder="admin" required>
         </div>
 
-        <div class="form-floating mb-4 text-start">
-            <input type="password" name="password" class="form-control" id="passwordInput" placeholder="******" required>
-            <label for="passwordInput" class="text-secondary">Password</label>
+        <div class="mb-4 text-start">
+            <label for="passwordInput" class="form-label text-secondary fw-bold small mb-1">Password</label>
+            <input type="password" name="password" class="form-control bg-dark text-light border-secondary" id="passwordInput" placeholder="******" required>
         </div>
 
         <button type="submit" class="btn btn-primary w-100 btn-lg fs-6">Sign In</button>

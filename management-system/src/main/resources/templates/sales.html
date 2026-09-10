@@ -125,12 +125,17 @@
                         </div>
                     </div>
 
-                    <form th:action="@{/sales}" method="get" class="d-flex">
-                        <input type="hidden" name="period" th:value="${param.period}">
-                        <input type="hidden" name="category" th:value="${param.category}">
+                    <form th:action="@{/sales}" method="get">
+                        <!-- The invisible label that pushes the bar down to align with the others -->
+                        <label class="form-label d-block mb-1">&nbsp;</label>
 
-                        <input type="text" name="search" class="form-control me-2" placeholder="Search sales...">
-                        <button type="submit" class="btn btn-warning">Search</button>
+                        <div class="d-flex">
+                            <input type="hidden" name="period" th:value="${param.period}">
+                            <input type="hidden" name="category" th:value="${param.category}">
+
+                            <input type="text" name="search" class="form-control bg-dark text-light border-secondary me-2" placeholder="Search sales...">
+                            <button type="submit" class="btn btn-warning">Search</button>
+                        </div>
                     </form>
 
                 </div>
@@ -339,6 +344,5 @@
         </div>
     </div>
 </div>
-
 </body>
 </html>

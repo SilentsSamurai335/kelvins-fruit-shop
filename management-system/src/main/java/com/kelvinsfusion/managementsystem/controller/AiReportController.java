@@ -157,6 +157,9 @@ public class AiReportController {
         try {
             return geminiService.generateText(prompt);
         } catch (Exception e) {
+            if (e.getMessage().contains("429") || e.getMessage().contains("quota")) {
+                return "AI Analysis temporarily unavailable. You have reached the daily free-tier request limit. Please try again later.";
+            }
             return "Error connecting to AI: " + e.getMessage();
         }
     }

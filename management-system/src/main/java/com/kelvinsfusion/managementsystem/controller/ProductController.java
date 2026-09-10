@@ -368,7 +368,7 @@ public class ProductController {
     @GetMapping("/sales/delete/{id}")
     public String deleteSale(@PathVariable Long id, Principal principal) {
         // Double-check security: only Kelvin can do this
-        if (principal != null && "kelvin".equals(principal.getName())) {
+        if (principal != null && "Kelvin".equals(principal.getName())) {
             saleRepository.deleteById(id);
         }
         return "redirect:/sales";
