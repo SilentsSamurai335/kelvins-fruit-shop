@@ -260,9 +260,8 @@
         <li class="nav-item" sec:authorize="hasRole('ADMIN')"><a href="/analytics" class="nav-link" th:classappend="${activePage == 'analytics'} ? 'active' : ''"><i class="fas fa-chart-pie"></i> <span>Financial Review</span></a></li>
         <li class="nav-item" sec:authorize="hasRole('ADMIN')"><a href="/income-statement" class="nav-link" th:classappend="${activePage == 'income'} ? 'active' : ''"><i class="fas fa-file-invoice-dollar"></i> <span>Income Statement</span></a></li>
         <li class="nav-item" sec:authorize="hasRole('ADMIN')">
-            <a class="nav-link text-light" th:href="@{/ai-report}"
-               th:classappend="${url == '/ai-report'} ? 'active bg-warning text-dark fw-bold' : ''">
-                <i class="fas fa-robot me-2"></i> AI Report
+            <a href="/ai-report" class="nav-link" th:classappend="${activePage == 'ai-report'} ? 'active' : ''">
+                <i class="fas fa-robot"></i> <span>AI Report</span>
             </a>
         </li>
         <li class="nav-item">

@@ -293,15 +293,21 @@ public class ProductController {
 
         List<Sale> allSales = saleRepository.findAll(Sort.by(Sort.Direction.DESC, "saleDateTime"));
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM yyyy");
+        // 1. Filter out null dates to prevent crashes, then sort newest-to-oldest
+        List<Sale> validSales = allSales.stream()
+                .filter(sale -> sale.getSaleDateTime() != null)
+                .sorted(Comparator.comparing(Sale::getSaleDateTime).reversed())
+                .collect(Collectors.toList());
 
-        Map<String, List<Sale>> groupedSales = allSales.stream()
-                .filter(sale -> sale.getSaleDateTime() != null) // Prevents crashes from old data
-                .collect(Collectors.groupingBy(
-                        sale -> sale.getSaleDateTime().format(formatter),
-                        LinkedHashMap::new, // Preserves the newest-first sorting order
-                        Collectors.toList()
-                ));
+        // 2. Format the date into "MONTH YYYY" (e.g., "SEPTEMBER 2026")
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH);
+
+        // 3. Use LinkedHashMap to preserve the exact chronological order
+        Map<String, List<Sale>> groupedSales = new LinkedHashMap<>();
+        for (Sale sale : validSales) {
+            String monthYear = sale.getSaleDateTime().format(formatter).toUpperCase();
+            groupedSales.computeIfAbsent(monthYear, k -> new ArrayList<>()).add(sale);
+        }
         Map<String, Double> monthlyTotals = new java.util.HashMap<>();
         for (Map.Entry<String, List<Sale>> entry : groupedSales.entrySet()) {
             double total = entry.getValue().stream()
@@ -785,7 +791,7 @@ public class ProductController {
                                 @RequestParam(required = false) String dayOfWeek,
                                 @RequestParam(required = false) String complexMonth,
                                 Model model, Principal principal) {
-        if (principal == null || !"kelvin".equals(principal.getName())) return "redirect:/";
+        if (principal == null || !"Kelvin".equals(principal.getName())) return "redirect:/";
 
         LocalDate today = LocalDate.now();
         LocalDateTime startDateTime;

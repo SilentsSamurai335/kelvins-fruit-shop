@@ -20,28 +20,46 @@
                             <i class="fas fa-user-edit"></i> Edit Staff Details
                         </div>
                         <div class="card-body">
+                            <!-- The form must bind to the user object passed from your controller -->
                             <form th:action="@{/save-user}" th:object="${user}" method="post">
-                                <input type="hidden" th:field="*{id}">
+
+                                <!-- CRITICAL: Hidden ID field ensures it updates instead of creating a new user -->
+                                <input type="hidden" th:field="*{id}" />
 
                                 <div class="mb-3">
-                                    <label class="form-label fw-bold">Username</label>
-                                    <input type="text" th:field="*{username}" class="form-control" required>
+                                    <label class="form-label text-light fw-bold">Username</label>
+                                    <input type="text" th:field="*{username}" class="form-control bg-dark text-light border-secondary" required>
                                 </div>
 
                                 <div class="mb-3">
-                                    <label class="form-label fw-bold">Full Name</label>
-                                    <input type="text" th:field="*{fullName}" class="form-control" required>
+                                    <label class="form-label text-light fw-bold">Full Name</label>
+                                    <input type="text" th:field="*{fullName}" class="form-control bg-dark text-light border-secondary" required>
+                                </div>
+
+                                <!-- NEW FIELD: National ID -->
+                                <div class="mb-3">
+                                    <label class="form-label text-light fw-bold">National ID</label>
+                                    <input type="text" th:field="*{nationalId}" class="form-control bg-dark text-light border-secondary" required>
+                                </div>
+
+                                <!-- NEW FIELD: Phone Number -->
+                                <div class="mb-3">
+                                    <label class="form-label text-light fw-bold">Phone Number</label>
+                                    <input type="text" th:field="*{phoneNumber}" class="form-control bg-dark text-light border-secondary" required>
                                 </div>
 
                                 <div class="mb-3">
-                                    <label class="form-label fw-bold">Change Password</label>
-                                    <input type="text" th:field="*{password}" class="form-control" placeholder="Enter new password to reset">
-                                    <small class="text-muted">Leave blank to keep current password</small>
+                                    <label class="form-label text-light fw-bold">Change Password</label>
+                                    <!-- Notice we don't use required here so they can leave it blank -->
+                                    <input type="text" th:field="*{password}" class="form-control bg-dark text-light border-secondary">
+                                    <small class="text-light opacity-75">Leave blank to keep current password</small>
                                 </div>
 
-                                <div class="d-flex justify-content-between">
-                                    <a href="/users" class="btn btn-outline-secondary">Cancel</a>
-                                    <button type="submit" class="btn btn-success fw-bold">Update Staff</button>
+                                <!-- Buttons -->
+                                <div class="d-flex justify-content-between mt-4">
+                                    <!-- Make sure this href points to your actual staff list page URL -->
+                                    <a th:href="@{/users}" class="btn btn-outline-secondary">Cancel</a>
+                                    <button type="submit" class="btn btn-success">Update Staff</button>
                                 </div>
                             </form>
                         </div>

@@ -112,45 +112,31 @@
             </div>
 
             <!-- The form must bind to the user object passed from your controller -->
-            <form th:action="@{/save-user}" th:object="${user}" method="post">
-
-                <!-- CRITICAL: Hidden ID field ensures it updates instead of creating a new user -->
-                <input type="hidden" th:field="*{id}" />
-
-                <div class="mb-3">
-                    <label class="form-label text-light fw-bold">Username</label>
-                    <input type="text" th:field="*{username}" class="form-control bg-dark text-light border-secondary" required>
+            <form th:action="@{/save-user}" method="post">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label text-light fw-bold">Full Name</label>
+                        <input type="text" name="fullName" class="form-control bg-dark text-light border-secondary" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-light fw-bold">Username</label>
+                        <input type="text" name="username" class="form-control bg-dark text-light border-secondary" autocomplete="off" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-light fw-bold">National ID</label>
+                        <input type="text" name="nationalId" class="form-control bg-dark text-light border-secondary" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-light fw-bold">Phone Number</label>
+                        <input type="text" name="phoneNumber" class="form-control bg-dark text-light border-secondary" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-light fw-bold">Password</label>
+                        <input type="password" name="password" class="form-control bg-dark text-light border-secondary" autocomplete="new-password" required>
+                    </div>
                 </div>
-
-                <div class="mb-3">
-                    <label class="form-label text-light fw-bold">Full Name</label>
-                    <input type="text" th:field="*{fullName}" class="form-control bg-dark text-light border-secondary" required>
-                </div>
-
-                <!-- NEW FIELD: National ID -->
-                <div class="mb-3">
-                    <label class="form-label text-light fw-bold">National ID</label>
-                    <input type="text" th:field="*{nationalId}" class="form-control bg-dark text-light border-secondary" required>
-                </div>
-
-                <!-- NEW FIELD: Phone Number -->
-                <div class="mb-3">
-                    <label class="form-label text-light fw-bold">Phone Number</label>
-                    <input type="text" th:field="*{phoneNumber}" class="form-control bg-dark text-light border-secondary" required>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label text-light fw-bold">Change Password</label>
-                    <!-- Notice we don't use required here so they can leave it blank -->
-                    <input type="password" th:field="*{password}" class="form-control bg-dark text-light border-secondary">
-                    <small class="text-light opacity-75">Leave blank to keep current password</small>
-                </div>
-
-                <!-- Buttons -->
-                <div class="d-flex justify-content-between mt-4">
-                    <!-- Make sure this href points to your actual staff list page URL -->
-                    <a th:href="@{/users}" class="btn btn-outline-secondary">Cancel</a>
-                    <button type="submit" class="btn btn-success">Update Staff</button>
+                <div class="modal-footer border-secondary">
+                    <button type="submit" class="btn btn-primary w-100">Save Account</button>
                 </div>
             </form>
 
