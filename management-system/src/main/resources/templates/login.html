@@ -1,9 +1,12 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<!-- Trigger both Bootstrap 5 and your custom fragments.html dark mode -->
+<html xmlns:th="http://www.thymeleaf.org" data-bs-theme="dark" data-theme="dark">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Fruity Fusion</title>
+
     <th:block th:replace="~{fragments :: styles}"></th:block>
+
     <style>
         body {
             /* Center the login card */
@@ -11,18 +14,21 @@
             align-items: center;
             justify-content: center;
             height: 100vh;
+            /* Force the background and text to use your dark mode variables */
+            background-color: var(--bg-color);
+            color: var(--text-color);
         }
         .login-card {
             width: 100%;
             max-width: 400px;
             padding: 40px;
             border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            background: var(--card-bg); /* Use variable for Dark Mode */
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5); /* Slightly darker shadow for dark mode */
+            background: var(--card-bg);
             border-top: 5px solid var(--ff-yellow);
         }
         .login-logo {
-            max-width: 180px;
+            max-width: 240px;
             height: auto;
             margin-bottom: 1.5rem;
         }
@@ -32,6 +38,11 @@
             border-color: var(--ff-yellow);
             color: black;
             font-weight: bold;
+        }
+        .btn-primary:hover {
+            background-color: #e0a800;
+            border-color: #e0a800;
+            color: black;
         }
     </style>
 </head>
@@ -52,6 +63,7 @@
         </div>
 
         <div class="form-floating mb-3 text-start">
+            <!-- Your fragments.html already applies dark backgrounds to .form-control automatically -->
             <input type="text" name="username" class="form-control" id="usernameInput" placeholder="admin" required>
             <label for="usernameInput" class="text-secondary">Username</label>
         </div>
@@ -64,7 +76,7 @@
         <button type="submit" class="btn btn-primary w-100 btn-lg fs-6">Sign In</button>
     </form>
 
-    <p class="text-muted mt-4 mb-0" style="font-size: 0.9em;">&copy; 2025 Kelvin's Fruity Fusion</p>
+    <p class="text-muted mt-4 mb-0" style="font-size: 0.9em;">&copy; 2026 Kelvin's Fruity Fusion</p>
 </div>
 
 </body>
