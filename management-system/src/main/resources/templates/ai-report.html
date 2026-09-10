@@ -69,6 +69,13 @@
                         <button type="submit" class="btn btn-warning fw-bold"><i class="fas fa-filter"></i> Apply Year</button>
                     </div>
                 </form>
+
+                <form th:action="@{/ai-report}" method="get" onsubmit="showLoading()">
+                    <input type="hidden" name="period" value="all">
+                    <button type="submit" class="btn btn-outline-warning fw-bold" style="height: 38px;">
+                        <i class="fas fa-globe"></i> All Time
+                    </button>
+                </form>
             </div>
 
             <!-- 4. KPI Summary Cards -->
@@ -113,11 +120,10 @@
                 <div class="col-lg-7 mb-4">
                     <div class="card shadow-lg h-100">
                         <div class="card-header bg-dark text-light border-secondary fw-bold">
-                            <i class="fas fa-chart-line me-2 text-primary"></i>Sales Trend Visualization
+                            <i class="fas fa-chart-bar me-2 text-primary"></i>Revenue vs. Expenses Overview
                         </div>
                         <div class="card-body p-4 bg-dark">
-                            <canvas id="aiTrendChart" style="min-height: 300px;"></canvas>
-                        </div>
+                            <canvas id="comparisonChart" style="min-height: 300px;"></canvas>                        </div>
                     </div>
                 </div>
 
@@ -129,22 +135,16 @@
                         </div>
                         <div class="card-body p-4 bg-dark text-light position-relative">
 
-                            <!-- Loading Spinner inside the card -->
+                            <!-- Loading Spinner inside the card (Visible by default) -->
                             <div id="loadingSpinner" class="text-center my-5">
                                 <div class="spinner-border text-warning" style="width: 3rem; height: 3rem;" role="status"></div>
                                 <h5 class="mt-3 text-muted">Gemini AI is analyzing your financial data...</h5>
                             </div>
 
-                            <!-- The raw text from Gemini -->
-                            <div id="reportContainer" class="ai-content" th:if="${aiResponse != null}" th:text="${aiResponse}"></div>
+                            <!-- The container for the AI text (Hidden by default) -->
+                            <div id="reportContainer" class="ai-content" style="display: none;">
 
-                            <!-- Prompt message if no response yet -->
-                            <div id="promptMessage" th:if="${aiResponse == null}" class="text-muted text-center mt-5">
-                                <i class="fas fa-robot fa-3x mb-3 opacity-50"></i>
-                                <h5>Ready to Analyze</h5>
-                                <p>Apply a filter above to generate specific insights.</p>
                             </div>
-
                         </div>
                     </div>
                 </div>
@@ -162,69 +162,86 @@
 <!-- If you use a fragments file for scripts, uncomment the line below: -->
 <!-- <th:block th:replace="~{fragments :: scripts}"></th:block> -->
 <script th:inline="javascript">
-    // 1. Loading Animation Script
-    function showLoading() {
-        let reportContainer = document.getElementById('reportContainer');
-        let promptMessage = document.getElementById('promptMessage');
+    // 1. Fetch totals safely from Spring Boot Model
+    const rawRevenue = /*[[${totalSales != null ? totalSales : (totalRevenue != null ? totalRevenue : 0)}]]*/ 0;
+    const rawExpenses = /*[[${totalExpenses != null ? totalExpenses : 0}]]*/ 0;
 
-        if (reportContainer) reportContainer.style.display = 'none';
-        if (promptMessage) promptMessage.style.display = 'none';
+    // 2. Target the exact canvas ID we created
+    const ctx = document.getElementById('comparisonChart').getContext('2d');
 
-        document.getElementById('loadingSpinner').style.display = 'block';
-    }
-
-    // 2. Chart.js Implementation
-    /* Safely fetch data from Java. If missing, Thymeleaf outputs null instead of crashing */
-    const rawLabels = /*[[${dayLabels}]]*/ null;
-    const rawDataPoints = /*[[${dayData}]]*/ null;
-
-    /* Use standard JS to fallback to an empty array */
-    const labels = rawLabels || [];
-    const dataPoints = rawDataPoints || [];
-
-    if (labels.length > 0) {
-        const ctx = document.getElementById('aiTrendChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Revenue (KES)',
-                    data: dataPoints,
-                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                    borderColor: 'rgba(54, 162, 235, 1)',
-                    borderWidth: 1,
-                    borderRadius: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
+    // 3. Build the Comparative Bar Chart
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Overview (Selected Period)'],
+            datasets: [
+                {
+                    label: 'Gross Revenue (KES)',
+                    data: [rawRevenue],
+                    backgroundColor: '#28a745', // Green for Revenue
+                    borderRadius: 4,
+                    barPercentage: 0.6,
+                    categoryPercentage: 0.8
                 },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: { color: '#495057' },
-                        ticks: { color: '#adb5bd' }
-                    },
-                    x: {
-                        grid: { display: false },
-                        ticks: { color: '#adb5bd' }
+                {
+                    label: 'Total Expenses (KES)',
+                    data: [rawExpenses],
+                    backgroundColor: '#dc3545', // Red for Expenses
+                    borderRadius: 4,
+                    barPercentage: 0.6,
+                    categoryPercentage: 0.8
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: { color: '#adb5bd' } // Light text for dark mode
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: '#495057' },
+                    ticks: {
+                        color: '#adb5bd',
+                        callback: function(value) { return value.toLocaleString(); }
                     }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: '#adb5bd' }
                 }
             }
-        });
-    } else {
-        // Fallback text if no graph data is passed yet
-        const canvas = document.getElementById('aiTrendChart');
-        const ctx = canvas.getContext('2d');
-        ctx.font = "16px Arial";
-        ctx.fillStyle = "#adb5bd";
-        ctx.textAlign = "center";
-        ctx.fillText("Select a timeframe to load the trend graph", canvas.width/2, canvas.height/2);
-    }
+        }
+    });
+</script>
+
+<script th:inline="javascript">
+    document.addEventListener("DOMContentLoaded", function() {
+        // 1. Grab the variables calculated by the main page load
+        const timeFrame = /*[[${timeFrameLabel}]]*/ 'All Time';
+        const sales = /*[[${totalSales != null ? totalSales : 0}]]*/ 0;
+        const expenses = /*[[${totalExpenses != null ? totalExpenses : 0}]]*/ 0;
+
+        // 2. Fetch the AI analysis in the background
+        fetch(`/api/generate-insights?timeFrameLabel=${encodeURIComponent(timeFrame)}&totalSales=${sales}&totalExpenses=${expenses}`)
+            .then(response => response.text())
+            .then(text => {
+                // 3. Hide the spinner and show the text
+                document.getElementById('loadingSpinner').style.display = 'none';
+                document.getElementById('reportContainer').innerText = text;
+                document.getElementById('reportContainer').style.display = 'block';
+            })
+            .catch(error => {
+                document.getElementById('loadingSpinner').style.display = 'none';
+                document.getElementById('reportContainer').innerText = "Failed to connect to the AI service.";
+                document.getElementById('reportContainer').style.display = 'block';
+            });
+    });
 </script>
 </body>
 </html>

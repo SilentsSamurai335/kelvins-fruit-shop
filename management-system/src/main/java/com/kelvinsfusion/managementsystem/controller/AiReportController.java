@@ -10,6 +10,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.security.Principal;
 import java.time.LocalDate;
@@ -79,6 +80,10 @@ public class AiReportController {
             } else if ("year".equals(period)) {
                 start = now.withDayOfYear(1);
                 timeFrameLabel = "This Year (" + now.getYear() + ")";
+            } else if ("all".equals(period)) {
+                // Pushes the start date 100 years into the past to grab everything
+                start = now.minusYears(100);
+                timeFrameLabel = "All Time Financials";
             }
 
             LocalDate finalStart = start;
@@ -116,23 +121,7 @@ public class AiReportController {
             trendMap.put(key, trendMap.getOrDefault(key, 0.0) + s.getTotalAmount());
         }
 
-        // 5. BUILD THE PROMPT (Tuned for fresh juice & raw ingredients)
-        String prompt = String.format(
-                "You are an expert financial analyst for a fresh fruit juice business. " +
-                        "Analyze this data for the period: %s.\n\n" +
-                        "Total Revenue from mixed juice: KES %.2f\n" +
-                        "Total Raw Ingredient Expenses (Fruit, Tamarind, Sugar, etc.): KES %.2f\n\n" +
-                        "Provide a brief, professional report. Calculate the profit margin, assess if the raw ingredient spending is efficient compared to the revenue, and give one actionable tip to improve profitability. Do not use markdown symbols like asterisks.",
-                timeFrameLabel, totalSales, totalExpenses
-        );
 
-        // 6. GET AI RESPONSE
-        try {
-            String aiResponse = geminiService.generateText(prompt);
-            model.addAttribute("aiResponse", aiResponse);
-        } catch (Exception e) {
-            model.addAttribute("aiResponse", "Error connecting to AI: " + e.getMessage());
-        }
 
         // 7. SEND EVERYTHING TO HTML
         model.addAttribute("currentPeriod", period);
@@ -147,5 +136,28 @@ public class AiReportController {
         model.addAttribute("dayData", trendMap.values());
 
         return "ai-report";
+    }
+
+    @GetMapping("/api/generate-insights")
+    @ResponseBody
+    public String generateInsights(
+            @RequestParam String timeFrameLabel,
+            @RequestParam double totalSales,
+            @RequestParam double totalExpenses) {
+
+        String prompt = String.format(
+                "You are an expert financial analyst for a fresh fruit juice business. " +
+                        "Analyze this data for the period: %s.\n\n" +
+                        "Total Revenue from mixed juice: KES %.2f\n" +
+                        "Total Raw Ingredient Expenses (Fruit, Tamarind, Sugar, etc.): KES %.2f\n\n" +
+                        "Provide a brief, professional report. Calculate the profit margin, assess if the raw ingredient spending is efficient compared to the revenue, and give one actionable tip to improve profitability. Do not use markdown symbols like asterisks.",
+                timeFrameLabel, totalSales, totalExpenses
+        );
+
+        try {
+            return geminiService.generateText(prompt);
+        } catch (Exception e) {
+            return "Error connecting to AI: " + e.getMessage();
+        }
     }
 }

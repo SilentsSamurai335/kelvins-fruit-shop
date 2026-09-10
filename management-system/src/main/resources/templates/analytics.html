@@ -147,6 +147,16 @@
                 </div>
             </div>
 
+            <div class="card shadow-lg h-100">
+                <div class="card-header bg-dark text-light border-secondary fw-bold">
+                    <i class="fas fa-chart-bar me-2 text-primary"></i>Revenue vs. Expenses Overview
+                </div>
+
+                <!-- PLACE THE CANVAS HERE -->
+                <div class="card-body p-4 bg-dark">
+                    <canvas id="comparisonChart" style="min-height: 300px;"></canvas>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -202,6 +212,8 @@
     const dayData = [[${dayData}]];
     const payLabels = [[${payLabels}]];
     const payData = [[${payData}]];
+    const rawRevenue = /*[[${totalSales != null ? totalSales : (totalRevenue != null ? totalRevenue : 0)}]]*/ 0;
+    const rawExpenses = /*[[${totalExpenses != null ? totalExpenses : 0}]]*/ 0;
 
     // CHART 1: SALES PIE
     const c1 = new Chart(document.getElementById('catChart'), {
@@ -239,6 +251,59 @@
         type: 'doughnut',
         data: { labels: payLabels, datasets: [{ data: payData, backgroundColor: ['#FF9F40', '#36A2EB'] }] },
         options: { maintainAspectRatio: false }
+    });
+
+    // 2. Target the exact canvas ID we created
+    const ctx = document.getElementById('comparisonChart').getContext('2d');
+
+    // 3. Build the Comparative Bar Chart
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Overview (Selected Period)'],
+            datasets: [
+                {
+                    label: 'Gross Revenue (KES)',
+                    data: [rawRevenue],
+                    backgroundColor: '#28a745', // Green for Revenue
+                    borderRadius: 4,
+                    barPercentage: 0.6,
+                    categoryPercentage: 0.8
+                },
+                {
+                    label: 'Total Expenses (KES)',
+                    data: [rawExpenses],
+                    backgroundColor: '#dc3545', // Red for Expenses
+                    borderRadius: 4,
+                    barPercentage: 0.6,
+                    categoryPercentage: 0.8
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: { color: '#adb5bd' } // Light text for dark mode
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: '#495057' },
+                    ticks: {
+                        color: '#adb5bd',
+                        callback: function(value) { return value.toLocaleString(); }
+                    }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: '#adb5bd' }
+                }
+            }
+        }
     });
 
     // DOCX EXPORT

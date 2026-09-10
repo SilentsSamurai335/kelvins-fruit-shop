@@ -291,35 +291,28 @@ public class ProductController {
                     .toList();
         }
 
-        List<Sale> allSales = saleRepository.findAll(Sort.by(Sort.Direction.DESC, "saleDateTime"));
-
-        // 1. Filter out null dates to prevent crashes, then sort newest-to-oldest
-        List<Sale> validSales = allSales.stream()
-                .filter(sale -> sale.getSaleDateTime() != null)
+        // 1. Sort the FILTERED sales list (newest first)
+        sales = sales.stream()
                 .sorted(Comparator.comparing(Sale::getSaleDateTime).reversed())
                 .collect(Collectors.toList());
 
-        // 2. Format the date into "MONTH YYYY" (e.g., "SEPTEMBER 2026")
+        // 2. Build the Accordion Map using the FILTERED list
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH);
-
-        // 3. Use LinkedHashMap to preserve the exact chronological order
         Map<String, List<Sale>> groupedSales = new LinkedHashMap<>();
-        for (Sale sale : validSales) {
-            String monthYear = sale.getSaleDateTime().format(formatter).toUpperCase();
-            groupedSales.computeIfAbsent(monthYear, k -> new ArrayList<>()).add(sale);
+        Map<String, Double> monthlyTotals = new HashMap<>();
+
+        for (Sale sale : sales) {
+            if (sale.getSaleDateTime() != null) {
+                String monthYear = sale.getSaleDateTime().format(formatter).toUpperCase();
+                groupedSales.computeIfAbsent(monthYear, k -> new ArrayList<>()).add(sale);
+            }
         }
-        Map<String, Double> monthlyTotals = new java.util.HashMap<>();
+
+        // 3. Calculate Totals
         for (Map.Entry<String, List<Sale>> entry : groupedSales.entrySet()) {
-            double total = entry.getValue().stream()
-                    .mapToDouble(Sale::getTotalAmount)
-                    .sum();
+            double total = entry.getValue().stream().mapToDouble(Sale::getTotalAmount).sum();
             monthlyTotals.put(entry.getKey(), total);
         }
-        // SORT THE LIST: Most recent at the top
-        // NOTE: Change 'getTimestamp' to 'getDate' or 'getTime' depending on exactly what you named the time variable in your Sale.java entity!
-        sales = sales.stream()
-                .sorted(java.util.Comparator.comparing(Sale::getSaleDateTime).reversed())
-                .collect(java.util.stream.Collectors.toList());
 
         double totalRevenue = sales.stream().mapToDouble(Sale::getTotalAmount).sum();
         model.addAttribute("listSales", sales);
