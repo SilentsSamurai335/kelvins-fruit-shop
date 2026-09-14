@@ -62,13 +62,13 @@
 
                                         <a th:href="@{/products/edit/{id}(id=${product.id})}"
                                            class="btn btn-sm btn-outline-primary"
-                                           th:if="${#authentication != null and #authentication.name == 'kelvin'}">
+                                           th:if="${#authentication != null and #authentication.name == 'Kelvin'}">
                                             <i class="fas fa-pencil-alt"></i>
                                         </a>
 
                                         <a th:href="@{/inventory/delete/{id}(id=${product.id})}"
                                            class="btn btn-sm btn-outline-danger mt-2"
-                                           th:if="${#authentication != null and #authentication.name == 'kelvin'}"
+                                           th:if="${#authentication != null and #authentication.name == 'Kelvin'}"
                                            onclick="return confirm('WARNING: Are you sure you want to permanently delete this product from the menu?');">
                                             <i class="fas fa-trash-alt"></i>
                                         </a>
