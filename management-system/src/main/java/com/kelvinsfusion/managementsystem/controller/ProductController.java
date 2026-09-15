@@ -640,14 +640,14 @@ public class ProductController {
         String recipientForForm = "";
 
         // Admin Logic (Now specifically looking for 'kelvin')
-        if ("kelvin".equals(currentUser)) {
+        if ("Kelvin".equals(currentUser)) {
             List<User> staffList = userRepository.findAll();
             // Remove yourself from the staff list so you don't chat with yourself
-            staffList.removeIf(u -> "kelvin".equals(u.getUsername()));
+            staffList.removeIf(u -> "Kelvin".equals(u.getUsername()));
             model.addAttribute("staffList", staffList);
 
             if (staffUsername != null && !staffUsername.isEmpty()) {
-                chats = teamLogRepository.findChatHistory("kelvin", staffUsername);
+                chats = teamLogRepository.findChatHistory("Kelvin", staffUsername);
                 model.addAttribute("chatTarget", staffUsername);
                 recipientForForm = staffUsername;
             } else {
@@ -656,9 +656,9 @@ public class ProductController {
         }
         // Staff Logic (Staff send messages directly to 'kelvin')
         else {
-            chats = teamLogRepository.findChatHistory(currentUser, "kelvin");
+            chats = teamLogRepository.findChatHistory(currentUser, "Kelvin");
             model.addAttribute("chatTarget", "Manager (Kelvin)");
-            recipientForForm = "kelvin";
+            recipientForForm = "Kelvin";
         }
 
         model.addAttribute("chats", chats);
