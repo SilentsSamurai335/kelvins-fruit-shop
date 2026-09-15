@@ -50,7 +50,7 @@
                                                  th:text="'Stock: ' + ${product.stockSmall}"></div>
                                         </div>
 
-                                        <div th:if="${product.category == 'Snack' and #authentication.name == 'kelvin'}" class="mt-2">
+                                        <div th:if="${product.category == 'Snack' and #authentication.name == 'Kelvin'}" class="mt-2">
                                             <form th:action="@{/add-stock}" method="post" class="d-flex gap-2">
                                                 <input type="hidden" name="productId" th:value="${product.id}">
                                                 <input type="number" name="quantity" class="form-control form-control-sm" placeholder="Qty" min="1" required style="width: 70px;">
