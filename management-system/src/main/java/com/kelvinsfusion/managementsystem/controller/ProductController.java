@@ -112,7 +112,7 @@ public class ProductController {
                            Principal principal) {
 
         // 1. Security Check
-        if (principal == null || !"kelvin".equals(principal.getName())) {
+        if (principal == null || !"Kelvin".equals(principal.getName())) {
             return "redirect:/";
         }
 
@@ -207,7 +207,7 @@ public class ProductController {
     @GetMapping("/inventory/delete/{id}")
     public String deleteProduct(@PathVariable Long id, Principal principal) {
         // 1. Security Check: Only Kelvin has the authority to delete a product
-        if (principal != null && "kelvin".equals(principal.getName())) {
+        if (principal != null && "Kelvin".equals(principal.getName())) {
             // 2. Delete the item from the database
             productRepository.deleteById(id);
         }
