@@ -17,12 +17,12 @@ public class Product {
     private String category; // "Juice", "Snack", "Spice"
 
     // --- 250ML Data ---
-    private Double priceSmall;
-    private Int stockSmall;
+    private double priceSmall;
+    private int stockSmall;
 
     // --- 500ML Data ---
-    private Double priceLarge;
-    private Int stockLarge;
+    private double priceLarge;
+    private int stockLarge;
 
     public Product() {}
 
@@ -36,17 +36,17 @@ public class Product {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
-    public Double getPriceSmall() { return priceSmall; }
-    public void setPriceSmall(Double priceSmall) { this.priceSmall = priceSmall; }
+    public double getPriceSmall() { return priceSmall; }
+    public void setPriceSmall(double priceSmall) { this.priceSmall = priceSmall; }
 
-    public Int getStockSmall() { return stockSmall; }
-    public void setStockSmall(Int stockSmall) { this.stockSmall = stockSmall; }
+    public int getStockSmall() { return stockSmall; }
+    public void setStockSmall(int stockSmall) { this.stockSmall = stockSmall; }
 
-    public Double getPriceLarge() { return priceLarge; }
-    public void setPriceLarge(Double priceLarge) { this.priceLarge = priceLarge; }
+    public double getPriceLarge() { return priceLarge; }
+    public void setPriceLarge(double priceLarge) { this.priceLarge = priceLarge; }
 
-    public Int getStockLarge() { return stockLarge; }
-    public void setStockLarge(Int stockLarge) { this.stockLarge = stockLarge; }
+    public int getStockLarge() { return stockLarge; }
+    public void setStockLarge(int stockLarge) { this.stockLarge = stockLarge; }
 
     public String getCategory() { return category; }
     public void setCategory(String category) { this.category = category; }
