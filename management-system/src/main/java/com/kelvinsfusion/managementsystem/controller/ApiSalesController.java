@@ -6,11 +6,11 @@ import com.kelvinsfusion.managementsystem.repository.ProductRepository;
 import com.kelvinsfusion.managementsystem.repository.SaleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication; // Added for Role check
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate; // Added
-import java.time.LocalTime; // Added
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -61,12 +61,15 @@ public class ApiSalesController {
                     sale.setTotalAmount(item.getPrice() * item.getQty());
                     sale.setPaymentMethod(request.getPaymentMethod());
                     sale.setSeller(loggedInUser);
-
-                    // 3. Apply the calculated date here!
                     sale.setSaleDateTime(finalSaleDate);
 
                     if(request.getPhoneNumber() != null) {
                         sale.setPhoneNumber(request.getPhoneNumber());
+                    }
+
+                    // 3. NEW: If it's a debt, attach the debtor's name!
+                    if ("DEBT".equalsIgnoreCase(request.getPaymentMethod()) && request.getDebtorName() != null) {
+                        sale.setDebtorName(request.getDebtorName());
                     }
 
                     saleRepository.save(sale);
@@ -83,8 +86,10 @@ public class ApiSalesController {
         private String phoneNumber;
         private Double amount;
         private List<CartItem> items;
+        private LocalDate manualDate;
 
-        private LocalDate manualDate; // <-- ADDED THE DATE VARIABLE HERE
+        // <-- NEW: Added debtorName to catch the prompt from JS
+        private String debtorName;
 
         // Getters & Setters
         public LocalDate getManualDate() { return manualDate; }
@@ -98,6 +103,10 @@ public class ApiSalesController {
         public void setAmount(Double a) { this.amount = a; }
         public List<CartItem> getItems() { return items; }
         public void setItems(List<CartItem> i) { this.items = i; }
+
+        // NEW: Getters and Setters for the debtor name
+        public String getDebtorName() { return debtorName; }
+        public void setDebtorName(String debtorName) { this.debtorName = debtorName; }
     }
 
     public static class CartItem {
@@ -105,7 +114,7 @@ public class ApiSalesController {
         private String name;
         private int qty;
         private Double price;
-        // Getters & Setters
+
         public Long getId() { return id; }
         public void setId(Long i) { this.id = i; }
         public String getName() { return name; }

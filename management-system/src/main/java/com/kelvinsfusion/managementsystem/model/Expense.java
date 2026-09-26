@@ -15,6 +15,7 @@ public class Expense {
     private String category; // e.g., "Transport", "Utilities", "Juice Ingredients"
     private String itemName; // e.g., "Sugar", "Rent", "Lunch"
     private double amount;   // The Cost
+    private Double transactionCost;
 
     // --- Conditional Fields (Only used for some categories) ---
     private String quantity;      // For Ingredients
@@ -33,6 +34,15 @@ public class Expense {
     public Expense() {
         this.date = LocalDate.now();
     }
+
+    public Double getCombinedTotal() {
+        // Change 'this.amount' to 'this.cost' if your variable is named cost
+        double base = this.amount;
+        double tx = (this.transactionCost != null) ? this.transactionCost : 0.0;
+        return base + tx;
+    }
+
+
 
     // --- GETTERS AND SETTERS ---
     public Long getId() { return id; }
@@ -67,4 +77,9 @@ public class Expense {
 
     public Double getUnits() { return units; }
     public void setUnits(Double units) { this.units = units; }
+
+    public Double getTransactionCost() {
+        // If the database has a null value (like on older records), safely return 0.0 to Thymeleaf
+        return (this.transactionCost != null) ? this.transactionCost : 0.0;
+    }    public void setTransactionCost(Double transactionCost) { this.transactionCost = transactionCost; }
 }

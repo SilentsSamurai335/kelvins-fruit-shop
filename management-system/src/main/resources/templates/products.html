@@ -17,7 +17,7 @@
                 <div class="col-md-8">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h2 class="fw-bold">🥤 Menu</h2>
-                        <div sec:authorize="hasRole('ADMIN')">
+                        <div sec:authorize="hasRole('Kelvin')">
                             <a href="/add-product" class="btn btn-outline-primary btn-sm">+ New Product</a>
                         </div>
                     </div>
@@ -146,10 +146,23 @@
 
                             <div class="mb-3">
                                 <label class="small text-muted">Payment Method</label>
-                                <select id="paymentMethod" class="form-select">
-                                    <option value="MPESA">M-Pesa</option>
-                                    <option value="CASH">Cash</option>
+                                <select id="paymentMethod" class="form-select" onchange="toggleSplitPayment()">
+                                    <option value="MPESA">MPESA</option>
+                                    <option value="CASH">CASH</option>
+                                    <option value="SPLIT">SPLIT (MPESA & CASH)</option>
                                 </select>
+                            </div>
+
+                            <!-- Hidden fields that appear when 'Split' is chosen -->
+                            <div id="splitPaymentFields" class="row g-2 mb-3" style="display: none;">
+                                <div class="col-6">
+                                    <label class="small text-muted">M-Pesa Amount</label>
+                                    <input type="number" id="splitMpesa" class="form-control" placeholder="0.00">
+                                </div>
+                                <div class="col-6">
+                                    <label class="small text-muted">Cash Amount</label>
+                                    <input type="number" id="splitCash" class="form-control" placeholder="0.00">
+                                </div>
                             </div>
 
                             <!-- Visible ONLY to Admins -->
@@ -165,8 +178,14 @@
                                    th:value="${#dates.format(#dates.createNow(), 'yyyy-MM-dd')}"
                                    sec:authorize="!hasRole('ADMIN')">
 
-                            <button id="payButton" onclick="processPayment()" class="btn btn-success w-100 py-2 fw-bold">
+                            <!-- Standard Sale Button -->
+                            <button id="payButton" onclick="processPayment()" class="btn btn-success w-100 py-2 fw-bold mb-2">
                                 COMPLETE SALE
+                            </button>
+
+                            <!-- NEW: Record Debt Button -->
+                            <button id="debtButton" onclick="processDebt()" class="btn btn-outline-danger w-100 py-2 fw-bold">
+                                <i class="fas fa-hand-holding-usd"></i> RECORD AS DEBT
                             </button>
                         </div>
 
@@ -252,7 +271,6 @@
         updateCartUI();
     }
 
-    // HELPER FOR NON-BEVERAGES
     function addToCartWithQty(id, name, price) {
         let qtyInput = document.getElementById('qty-' + id);
         let qty = parseInt(qtyInput.value) || 1;
@@ -267,7 +285,6 @@
         qtyInput.value = 1;
     }
 
-    // BEVERAGE FUNCTION (Handles sizes & custom pricing)
     function addBeverageToCart(id, name, priceSm, priceLg) {
         let sizeSelect = document.getElementById("size-" + id);
         let size = sizeSelect.value;
@@ -384,7 +401,6 @@
         bootstrap.Modal.getInstance(document.getElementById('mixModal')).hide();
     }
 
-    // SHARED HELPER FUNCTION
     function addToCartWithQtyValue(id, name, price, qtyToAdd) {
         let existing = cart.find(item => item.name === name);
         if (existing) {
@@ -395,7 +411,12 @@
         updateCartUI();
     }
 
-    // 3. PAYMENT LOGIC
+    function toggleSplitPayment() {
+        const method = document.getElementById("paymentMethod").value;
+        document.getElementById("splitPaymentFields").style.display = (method === "SPLIT") ? "flex" : "none";
+    }
+
+    // 3. PAYMENT LOGIC (Standard Sale)
     async function processPayment() {
         if (cart.length === 0) { alert("Cart is empty"); return; }
 
@@ -403,7 +424,18 @@
         let method = document.getElementById("paymentMethod").value;
         let total = parseFloat(document.getElementById("cartTotal").innerText);
 
-        // 1. You grabbed the date perfectly here!
+        // Build the split string and validate math
+        if (method === "SPLIT") {
+            let mpesa = parseFloat(document.getElementById("splitMpesa").value) || 0;
+            let cash = parseFloat(document.getElementById("splitCash").value) || 0;
+
+            if (mpesa + cash !== total) {
+                alert(`Split amounts (KES ${mpesa + cash}) must exactly equal the total (KES ${total}).`);
+                return;
+            }
+            method = `Split (M-Pesa: ${mpesa}, Cash: ${cash})`;
+        }
+
         let manualDateInput = document.getElementById('manualDate');
         let manualDate = manualDateInput ? manualDateInput.value : '';
 
@@ -415,10 +447,10 @@
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    paymentMethod: method,
+                    paymentMethod: method, // Sends the formatted split string
                     amount: total,
                     items: cart,
-                    manualDate: manualDate // 2. ADD THIS LINE to send it to Java!
+                    manualDate: manualDate
                 })
             });
 
@@ -437,6 +469,59 @@
         } finally {
             payBtn.innerText = "COMPLETE SALE";
             payBtn.disabled = false;
+        }
+    }
+
+    // 4. NEW: DEBT LOGIC
+    async function processDebt() {
+        if (cart.length === 0) { alert("Cart is empty"); return; }
+
+        // Prompt the cashier for the debtor's name
+        let debtorName = prompt("Please enter the debtor's name:");
+
+        // If they hit cancel or leave it blank, abort the process
+        if (!debtorName || debtorName.trim() === "") {
+            alert("Transaction cancelled. A debtor's name is required.");
+            return;
+        }
+
+        let debtBtn = document.getElementById("debtButton");
+        let total = parseFloat(document.getElementById("cartTotal").innerText);
+        let manualDateInput = document.getElementById('manualDate');
+        let manualDate = manualDateInput ? manualDateInput.value : '';
+
+        debtBtn.innerText = "Recording Debt...";
+        debtBtn.disabled = true;
+
+        try {
+            let saveRes = await fetch("/api/sales/save", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    paymentMethod: "DEBT", // Force the backend to recognize this as a debt
+                    debtorName: debtorName.trim(), // Pass the prompted name to Java
+                    amount: total,
+                    items: cart,
+                    manualDate: manualDate
+                })
+            });
+
+            let result = await saveRes.json();
+
+            if (saveRes.ok) {
+                alert("DEBT RECORDED FOR: " + debtorName.trim().toUpperCase());
+                cart = [];
+                updateCartUI();
+            } else {
+                alert("Error: " + (result.error || "Could not save debt"));
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Network Error. Check console.");
+        } finally {
+            // Restore button state
+            debtBtn.innerHTML = '<i class="fas fa-hand-holding-usd"></i> RECORD AS DEBT';
+            debtBtn.disabled = false;
         }
     }
 </script>

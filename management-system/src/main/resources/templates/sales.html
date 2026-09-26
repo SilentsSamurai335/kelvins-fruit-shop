@@ -3,6 +3,11 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sales History - Fruity Fusion</title>
+    <script>
+        // Check local storage for common dark mode keys used by Bootstrap toggles
+        const savedTheme = localStorage.getItem('theme') || localStorage.getItem('data-bs-theme') || localStorage.getItem('bsTheme') || 'light';
+        document.documentElement.setAttribute('data-bs-theme', savedTheme);
+    </script>
     <th:block th:replace="~{fragments :: styles}"></th:block>
 
     <style>
@@ -96,6 +101,8 @@
                                 <option value="ALL">All Types</option>
                                 <option value="CASH">Cash</option>
                                 <option value="MPESA">M-Pesa</option>
+                                <option value="SPLIT">Split</option>
+                                <option value="DEBT">Debt</option>
                             </select>
                             <button type="button" class="btn btn-warning btn-sm fw-bold text-dark" onclick="updateFilters('payment', null)">Filter</button>
                         </div>
@@ -151,6 +158,23 @@
                 </div>
             </div>
 
+            <!-- NEW: Dynamic Staff Performance Cards (Visible only to Admin/Kelvin) -->
+            <div class="row g-3 mb-4" id="staffCardsContainer" sec:authorize="hasAnyRole('ADMIN', 'Kelvin')">
+                <th:block th:each="staff : ${salesBySeller}">
+                    <div class="col-md-3 col-sm-6 d-print-none">
+                        <div class="card border-0 shadow-sm h-100 staff-card text-white" th:data-name="${staff.key}">
+                            <div class="card-body p-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="text-uppercase fw-bold opacity-75 mb-0" th:text="${staff.key}"></h6>
+                                    <i class="fas fa-user-circle fs-4 opacity-50"></i>
+                                </div>
+                                <h4 class="mb-0 fw-bold" th:text="${'KES ' + #numbers.formatDecimal(staff.value, 1, 'COMMA', 2, 'POINT')}"></h4>
+                            </div>
+                        </div>
+                    </div>
+                </th:block>
+            </div>
+
             <div class="card shadow-sm border-0">
                 <div class="card-body p-0">
                     <div class="accordion" id="salesAccordion">
@@ -194,8 +218,12 @@
                                             <td th:text="${sale.itemsSold}"></td>
                                             <td th:text="${sale.quantity}">1</td>
                                             <td th:text="${#strings.isEmpty(sale.seller) ? 'Kelvin' : sale.seller}"></td>                                            <td>
-                                                <span class="badge"
-                                                      th:classappend="${#strings.toUpperCase(sale.paymentMethod) == 'MPESA'} ? 'bg-success' : 'bg-secondary'"
+                                                <span class="badge text-uppercase"
+                                                      th:classappend="${
+                                                          #strings.toUpperCase(sale.paymentMethod) == 'MPESA' ? 'bg-success' :
+                                                          (#strings.toUpperCase(sale.paymentMethod) == 'DEBT' ? 'bg-danger' :
+                                                          (#strings.toUpperCase(sale.paymentMethod).contains('SPLIT') ? 'bg-info text-dark' : 'bg-secondary'))
+                                                      }"
                                                       th:text="${sale.paymentMethod}">
                                                 </span>
                                             </td>
@@ -311,6 +339,30 @@
 
         window.location.href = '/sales?' + params.toString();
     }
+
+    // --- DYNAMIC STAFF CARD COLORS ---
+    document.addEventListener("DOMContentLoaded", function() {
+        const staffCards = document.querySelectorAll('.staff-card');
+
+        function stringToColor(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = str.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            // HSL (Hue, Saturation, Lightness). Lightness set to 40% for good contrast with white text.
+            const hue = Math.abs(hash % 360);
+            return `hsl(${hue}, 70%, 40%)`;
+        }
+
+        staffCards.forEach(card => {
+            const name = card.getAttribute('data-name');
+            if (name) {
+                const uniqueColor = stringToColor(name.toUpperCase());
+                // Color the entire background of the card
+                card.style.backgroundColor = uniqueColor;
+            }
+        });
+    });
 </script>
 
 <!-- Only displays if the controller passed 'editSale' to the model -->
@@ -326,23 +378,87 @@
                 <form th:action="@{/sales/save}" method="post" th:object="${editSale}">
                     <input type="hidden" th:field="*{id}" />
 
-                    <label class="form-label text-muted small fw-bold">Quantity</label>
-                    <input type="number" class="form-control form-control-sm mb-2" th:field="*{quantity}" />
+                    <label class="form-label text-muted small fw-bold">Item Sold</label>
+                    <div class="input-group input-group-sm mb-2">
+                        <select class="form-select" th:field="*{itemsSold}" id="editItemSelect">
+                            <!-- Keeps the original item if it's not in the current product list (e.g., an old custom mix) -->
+                            <option th:value="*{itemsSold}" th:text="*{itemsSold}"></option>
+                            <th:block th:each="p : ${listProducts}">
+                                <option th:value="${p.name}" th:text="${p.name}"></option>
+                            </th:block>
+                        </select>
+                        <button type="button" class="btn btn-warning fw-bold text-dark" onclick="openEditMixModal()">+ Mix</button>
+                    </div>
+
+                    <label class="form-label text-muted small fw-bold mt-2">Quantity</label>
+                    <input type="number" class="form-control form-control-sm mb-2" th:field="*{quantity}" id="editQty" />
 
                     <label class="form-label text-muted small fw-bold mt-2">Payment Method</label>
                     <select class="form-select form-select-sm mb-2" th:field="*{paymentMethod}">
+                        <!-- Include existing value in case it's a split or debt string -->
+                        <option th:value="*{paymentMethod}" th:text="*{paymentMethod}"></option>
                         <option value="Cash">CASH</option>
                         <option value="Mpesa">MPESA</option>
                     </select>
 
                     <label class="form-label text-muted small fw-bold mt-2">Amount</label>
-                    <input type="number" step="0.5" class="form-control form-control-sm mb-3" th:field="*{totalAmount}" />
+                    <input type="number" step="0.5" class="form-control form-control-sm mb-3" th:field="*{totalAmount}" id="editTotalAmount" />
 
-                    <button type="submit" class="btn btn-primary w-100">Update Sale</button>
+                    <button type="submit" class="btn btn-primary w-100 fw-bold">Update Sale</button>
                 </form>
             </div>
         </div>
     </div>
 </div>
+<script>
+    // Opens the mix modal specifically for the Edit Form
+    function openEditMixModal() {
+        // Reset modal fields
+        document.getElementById('mixBaseDisplay').value = "Custom Mix Base";
+        document.getElementById('mixQty').value = 1;
+        document.getElementById('mixSize').value = "250";
+        document.getElementById('mixinsContainer').innerHTML = '';
+
+        // Create first row
+        addMixinRow();
+
+        // Since we don't have a rigid base price here, default to standard pricing
+        document.getElementById('mixModal').dataset.p250 = "60";
+        document.getElementById('mixModal').dataset.p500 = "120";
+        updateMixPrice();
+
+        new bootstrap.Modal(document.getElementById('mixModal')).show();
+    }
+
+    // Rewired for Sales History: Updates the Edit Form Dropdown
+    function submitMix() {
+        const size = document.getElementById('mixSize').value;
+        const qty = parseInt(document.getElementById('mixQty').value) || 1;
+
+        const selects = document.querySelectorAll('.mixin-select');
+        let mixins = [];
+        selects.forEach(s => { if(s.value) mixins.push(s.value); });
+
+        let finalName = "Custom Mix (" + size + "ml)";
+        if(mixins.length > 0) finalName += " w/ " + mixins.join(" & ");
+
+        const modal = document.getElementById('mixModal');
+        let unitPrice = (size === "500") ? parseFloat(modal.dataset.p500) : parseFloat(modal.dataset.p250);
+
+        // 1. Inject the new mix into the edit dropdown and select it
+        let select = document.getElementById("editItemSelect");
+        let option = document.createElement("option");
+        option.value = finalName;
+        option.text = finalName;
+        select.add(option);
+        select.value = finalName;
+
+        // 2. Automatically update the quantity and total amount fields to match
+        document.getElementById("editQty").value = qty;
+        document.getElementById("editTotalAmount").value = unitPrice * qty;
+
+        bootstrap.Modal.getInstance(document.getElementById('mixModal')).hide();
+    }
+</script>
 </body>
 </html>

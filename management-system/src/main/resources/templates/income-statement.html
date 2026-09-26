@@ -3,6 +3,11 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Income Statement - Fruity Fusion</title>
+    <script>
+        // Check local storage for common dark mode keys used by Bootstrap toggles
+        const savedTheme = localStorage.getItem('theme') || localStorage.getItem('data-bs-theme') || localStorage.getItem('bsTheme') || 'light';
+        document.documentElement.setAttribute('data-bs-theme', savedTheme);
+    </script>
     <th:block th:replace="~{fragments :: styles}"></th:block>
 
     <style>

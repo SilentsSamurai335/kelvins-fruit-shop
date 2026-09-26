@@ -257,6 +257,11 @@
         <li class="nav-item"><a href="/products" class="nav-link" th:classappend="${activePage == 'inventory'} ? 'active' : ''"><i class="fas fa-glass-water"></i> <span>Inventory / POS</span></a></li>
         <li class="nav-item" sec:authorize="hasRole('ADMIN')"><a href="/expenses" class="nav-link" th:classappend="${activePage == 'expenses'} ? 'active' : ''"><i class="fas fa-receipt"></i> <span>Expenses</span></a></li>
         <li class="nav-item"><a href="/sales" class="nav-link" th:classappend="${activePage == 'sales'} ? 'active' : ''"><i class="fas fa-chart-line"></i> <span>Sales History</span></a></li>
+        <li class="nav-item">
+            <a class="nav-link" th:classappend="${activePage == 'debts'} ? 'active' : ''" href="/debts">
+                <i class="fas fa-hand-holding-usd me-2"></i> Debts
+            </a>
+        </li>
         <li class="nav-item" sec:authorize="hasRole('ADMIN')"><a href="/analytics" class="nav-link" th:classappend="${activePage == 'analytics'} ? 'active' : ''"><i class="fas fa-chart-pie"></i> <span>Financial Review</span></a></li>
         <li class="nav-item" sec:authorize="hasRole('ADMIN')"><a href="/income-statement" class="nav-link" th:classappend="${activePage == 'income'} ? 'active' : ''"><i class="fas fa-file-invoice-dollar"></i> <span>Income Statement</span></a></li>
         <li class="nav-item" sec:authorize="hasRole('ADMIN')">

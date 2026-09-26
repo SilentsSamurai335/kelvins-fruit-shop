@@ -3,6 +3,11 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Financial Review - Kelvin's Fruity Fusion</title>
+    <script>
+        // Check local storage for common dark mode keys used by Bootstrap toggles
+        const savedTheme = localStorage.getItem('theme') || localStorage.getItem('data-bs-theme') || localStorage.getItem('bsTheme') || 'light';
+        document.documentElement.setAttribute('data-bs-theme', savedTheme);
+    </script>
     <th:block th:replace="~{fragments :: styles}"></th:block>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html-docx-js@0.3.1/dist/html-docx.min.js"></script>

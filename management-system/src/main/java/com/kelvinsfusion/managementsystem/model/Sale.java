@@ -23,6 +23,7 @@ public class Sale {
     private String phoneNumber;
     private LocalDate manualDate;
     private String seller;
+    private String debtorName;
 
     // --- Constructor ---
     public Sale() {
@@ -60,4 +61,7 @@ public class Sale {
 
     public String getSeller() { return seller; }
     public void setSeller(String seller) { this.seller = seller; }
+
+    public String getDebtorName() { return debtorName; }
+    public void setDebtorName(String debtorName) { this.debtorName = debtorName; }
 }

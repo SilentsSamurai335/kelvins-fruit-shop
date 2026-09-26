@@ -275,12 +275,33 @@ public class ProductController {
             title = "This Month's Sales";
         }
 
-        List<Sale> sales;
-        if (paymentMethod.equals("ALL")) {
-            sales = saleRepository.findBySaleDateTimeBetween(start, end);
-        } else {
-            sales = saleRepository.findBySaleDateTimeBetweenAndPaymentMethod(start, end, paymentMethod);
-            title += " (" + paymentMethod + ")";
+        // 1. Fetch all sales for the chosen date range FIRST
+        List<Sale> sales = saleRepository.findBySaleDateTimeBetween(start, end);
+
+        // 2. Filter in-memory to catch the dynamic "Split" strings
+        if (!"ALL".equalsIgnoreCase(paymentMethod)) {
+            String filterTarget = paymentMethod.toUpperCase();
+
+            sales = sales.stream().filter(s -> {
+                if (s.getPaymentMethod() == null) return false;
+                String pm = s.getPaymentMethod().toUpperCase();
+
+                if (filterTarget.equals("MPESA")) {
+                    // Catch pure MPESA or a Split that includes M-Pesa
+                    return pm.equals("MPESA") || (pm.startsWith("SPLIT") && pm.contains("M-PESA"));
+                } else if (filterTarget.equals("CASH")) {
+                    // Catch pure CASH or a Split that includes Cash
+                    return pm.equals("CASH") || (pm.startsWith("SPLIT") && pm.contains("CASH"));
+                } else if (filterTarget.equals("SPLIT")) {
+                    // Catch ONLY Split payments
+                    return pm.startsWith("SPLIT");
+                }
+
+                // For DEBT or anything else, do an exact match
+                return pm.equals(filterTarget);
+            }).collect(Collectors.toList());
+
+            title += " (" + filterTarget + ")";
         }
 
         if (search != null && !search.trim().isEmpty()) {
@@ -314,6 +335,24 @@ public class ProductController {
             monthlyTotals.put(entry.getKey(), total);
         }
 
+        // 1. Fetch EVERY sale from the database from Day 1
+        List<Sale> allTimeSales = saleRepository.findAll();
+
+        // 2. Group all-time sales by seller, handling legacy null values
+        Map<String, Double> allTimeSalesBySeller = allTimeSales.stream()
+                .filter(s -> !"Admin".equalsIgnoreCase(s.getSeller())) // Exclude Admin
+                .collect(Collectors.groupingBy(
+                        s -> {
+                            String sellerName = s.getSeller();
+                            // If the seller is blank/null in the database, attribute the sale to KELVIN
+                            if (sellerName == null || sellerName.trim().isEmpty()) {
+                                return "KELVIN";
+                            }
+                            return sellerName.trim().toUpperCase();
+                        },
+                        Collectors.summingDouble(Sale::getTotalAmount)
+                ));
+
         double totalRevenue = sales.stream().mapToDouble(Sale::getTotalAmount).sum();
         model.addAttribute("listSales", sales);
         model.addAttribute("totalRevenue", totalRevenue);
@@ -326,6 +365,7 @@ public class ProductController {
         model.addAttribute("sales", sales);
         model.addAttribute("groupedSales", groupedSales);
         model.addAttribute("monthlyTotals", monthlyTotals);
+        model.addAttribute("salesBySeller", allTimeSalesBySeller);
 
         return "sales";
     }
@@ -343,6 +383,7 @@ public class ProductController {
                 .collect(java.util.stream.Collectors.toList());
 
         // 3. Send the specific sale to the model so an HTML form can display it
+        model.addAttribute("listProducts", productRepository.findAll());
         model.addAttribute("editSale", saleToEdit);
         model.addAttribute("sales", salesList);
 
@@ -462,10 +503,24 @@ public class ProductController {
                     .toList();
         }
 
-        double total = expenses.stream().mapToDouble(Expense::getAmount).sum();
+        // Calculate the total for the main cost
+        double totalBaseCost = expenses.stream()
+                .mapToDouble(e -> e.getAmount()) // Use getAmount() if your variable is named amount
+                .sum();
+
+        // Calculate the total for the transaction costs
+        double totalTxCost = expenses.stream()
+                .mapToDouble(e -> e.getTransactionCost() != null ? e.getTransactionCost() : 0.0)
+                .sum();
+
+        // Calculate combined total
+        double grandTotal = totalBaseCost + totalTxCost;
+
+        model.addAttribute("totalCost", totalBaseCost);
+        model.addAttribute("totalTxCost", totalTxCost);
+        model.addAttribute("grandTotal", grandTotal);
         model.addAttribute("listExpenses", expenses);
         model.addAttribute("newExpense", new Expense());
-        model.addAttribute("totalExpense", total);
         model.addAttribute("periodTitle", title);
         model.addAttribute("selectedMonth", (month != null) ? month : now.getMonthValue());
         model.addAttribute("selectedYear", (year != null) ? year : now.getYear());

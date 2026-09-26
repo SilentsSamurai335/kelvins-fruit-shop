@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.w3.org/1999/xhtml">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debts - Fruity Fusion</title>
+    <script>
+        // Check local storage for common dark mode keys used by Bootstrap toggles
+        const savedTheme = localStorage.getItem('theme') || localStorage.getItem('data-bs-theme') || localStorage.getItem('bsTheme') || 'light';
+        document.documentElement.setAttribute('data-bs-theme', savedTheme);
+    </script>
+    <th:block th:replace="~{fragments :: styles}"></th:block>
+</head>
+<body class="bg-body-tertiary">
+<div class="d-flex" id="wrapper">
+    <!-- Pass 'debts' to light up the sidebar link -->
+    <div th:replace="~{fragments :: sidebar(activePage='debts')}"></div>
+
+    <div class="main-content w-100">
+        <div class="container-fluid p-4">
+            <div th:replace="~{fragments :: topbar}"></div>
+
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="fw-bold text-danger"><i class="fas fa-hand-holding-usd"></i> Active Debts</h2>
+            </div>
+
+            <!-- Total Outstanding KPI -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card bg-danger text-white border-0 shadow-sm">
+                        <div class="card-body p-4">
+                            <h6 class="text-uppercase fw-bold opacity-75 mb-2">Total Outstanding</h6>
+                            <h2 class="mb-0 fw-bold" th:text="${'KES ' + #numbers.formatDecimal(totalDebt, 1, 'COMMA', 2, 'POINT')}"></h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                            <tr>
+                                <th class="ps-4">Date Issued</th>
+                                <th>Debtor Name</th>
+                                <th>Items Taken</th>
+                                <th class="text-primary">Amount</th>
+                                <th class="text-end pe-4">Action</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="debt : ${debts}">
+                                <td class="ps-4 text-muted" th:text="${#temporals.format(debt.saleDateTime, 'dd MMM yyyy, HH:mm')}"></td>
+                                <td class="fw-bold text-uppercase" th:text="${debt.debtorName}"></td>
+                                <td th:text="${debt.itemsSold}"></td>
+                                <td class="text-primary fw-bold" th:text="${'KES ' + #numbers.formatDecimal(debt.totalAmount, 1, 'COMMA', 2, 'POINT')}"></td>
+                                <td class="text-end pe-4">
+                                    <button class="btn btn-sm btn-success fw-bold"
+                                            data-bs-toggle="modal"
+                                            th:data-bs-target="'#settleModal-' + ${debt.id}">
+                                        Settle Debt
+                                    </button>
+
+                                    <!-- Settle Debt Modal -->
+                                    <div class="modal fade" th:id="'settleModal-' + ${debt.id}" tabindex="-1" aria-hidden="true">
+                                        <div class="modal-dialog modal-dialog-centered">
+                                            <div class="modal-content text-start">
+                                                <div class="modal-header border-bottom-0">
+                                                    <h5 class="modal-title fw-bold">Settle Debt: <span class="text-primary" th:text="${debt.debtorName}"></span></h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <form th:action="@{/debts/settle}" method="POST">
+                                                    <div class="modal-body py-0">
+                                                        <input type="hidden" name="id" th:value="${debt.id}">
+
+                                                        <div class="alert alert-info border-0 mb-3">
+                                                            Amount due: <strong th:text="${'KES ' + #numbers.formatDecimal(debt.totalAmount, 1, 'COMMA', 2, 'POINT')}"></strong>
+                                                        </div>
+
+                                                        <div class="mb-3">
+                                                            <label class="form-label fw-bold small text-muted text-uppercase">Repayment Method</label>
+                                                            <select name="settleMethod" class="form-select" required th:onchange="'toggleDebtSplit(this, ' + ${debt.id} + ')'">
+                                                                <option value="CASH">CASH</option>
+                                                                <option value="MPESA">MPESA</option>
+                                                                <option value="SPLIT">SPLIT (MPESA & CASH)</option>
+                                                            </select>
+                                                        </div>
+
+                                                        <div th:id="'splitFields-' + ${debt.id}" class="row g-2 mb-3" style="display: none;">
+                                                            <div class="col-6">
+                                                                <input type="number" name="splitMpesa" class="form-control form-control-sm" placeholder="M-Pesa Amt">
+                                                            </div>
+                                                            <div class="col-6">
+                                                                <input type="number" name="splitCash" class="form-control form-control-sm" placeholder="Cash Amt">
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer border-top-0 pt-0">
+                                                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                        <button type="submit" class="btn btn-success fw-bold px-4">Confirm Repayment</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(debts)}">
+                                <td colspan="5" class="text-center text-muted py-5">
+                                    <i class="fas fa-check-circle fs-2 text-success mb-2 d-block"></i>
+                                    All accounts are settled. No outstanding debts.
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function toggleDebtSplit(selectElement, debtId) {
+        const splitDiv = document.getElementById('splitFields-' + debtId);
+        splitDiv.style.display = (selectElement.value === 'SPLIT') ? 'flex' : 'none';
+
+        // Make fields required only if split is selected
+        const inputs = splitDiv.querySelectorAll('input');
+        inputs.forEach(input => input.required = (selectElement.value === 'SPLIT'));
+    }
+</script>
+</body>
+</html>
