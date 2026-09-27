@@ -241,7 +241,6 @@ public class ProductController {
         return "redirect:/products";
     }
 
-    // --- SALES HISTORY ---
     @GetMapping("/sales")
     public String showSales(@RequestParam(value = "period", required = false) String period,
                             @RequestParam(value = "month", required = false) Integer month,
@@ -287,17 +286,13 @@ public class ProductController {
                 String pm = s.getPaymentMethod().toUpperCase();
 
                 if (filterTarget.equals("MPESA")) {
-                    // Catch pure MPESA or a Split that includes M-Pesa
                     return pm.equals("MPESA") || (pm.startsWith("SPLIT") && pm.contains("M-PESA"));
                 } else if (filterTarget.equals("CASH")) {
-                    // Catch pure CASH or a Split that includes Cash
                     return pm.equals("CASH") || (pm.startsWith("SPLIT") && pm.contains("CASH"));
                 } else if (filterTarget.equals("SPLIT")) {
-                    // Catch ONLY Split payments
                     return pm.startsWith("SPLIT");
                 }
 
-                // For DEBT or anything else, do an exact match
                 return pm.equals(filterTarget);
             }).collect(Collectors.toList());
 
@@ -312,12 +307,12 @@ public class ProductController {
                     .toList();
         }
 
-        // 1. Sort the FILTERED sales list (newest first)
+        // Sort the FILTERED sales list (newest first)
         sales = sales.stream()
                 .sorted(Comparator.comparing(Sale::getSaleDateTime).reversed())
                 .collect(Collectors.toList());
 
-        // 2. Build the Accordion Map using the FILTERED list
+        // Build the Accordion Map using the FILTERED list
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH);
         Map<String, List<Sale>> groupedSales = new LinkedHashMap<>();
         Map<String, Double> monthlyTotals = new HashMap<>();
@@ -329,22 +324,17 @@ public class ProductController {
             }
         }
 
-        // 3. Calculate Totals
         for (Map.Entry<String, List<Sale>> entry : groupedSales.entrySet()) {
             double total = entry.getValue().stream().mapToDouble(Sale::getTotalAmount).sum();
             monthlyTotals.put(entry.getKey(), total);
         }
 
-        // 1. Fetch EVERY sale from the database from Day 1
-        List<Sale> allTimeSales = saleRepository.findAll();
-
-        // 2. Group all-time sales by seller, handling legacy null values
-        Map<String, Double> allTimeSalesBySeller = allTimeSales.stream()
-                .filter(s -> !"Admin".equalsIgnoreCase(s.getSeller())) // Exclude Admin
+        // --- NEW: Group the FILTERED sales by seller for dynamic cards ---
+        Map<String, Double> dynamicSalesBySeller = sales.stream()
+                .filter(s -> !"Admin".equalsIgnoreCase(s.getSeller()))
                 .collect(Collectors.groupingBy(
                         s -> {
                             String sellerName = s.getSeller();
-                            // If the seller is blank/null in the database, attribute the sale to KELVIN
                             if (sellerName == null || sellerName.trim().isEmpty()) {
                                 return "KELVIN";
                             }
@@ -354,6 +344,7 @@ public class ProductController {
                 ));
 
         double totalRevenue = sales.stream().mapToDouble(Sale::getTotalAmount).sum();
+
         model.addAttribute("listSales", sales);
         model.addAttribute("totalRevenue", totalRevenue);
         model.addAttribute("periodTitle", title);
@@ -365,7 +356,9 @@ public class ProductController {
         model.addAttribute("sales", sales);
         model.addAttribute("groupedSales", groupedSales);
         model.addAttribute("monthlyTotals", monthlyTotals);
-        model.addAttribute("salesBySeller", allTimeSalesBySeller);
+
+        // Bind the dynamically filtered map to the model
+        model.addAttribute("salesBySeller", dynamicSalesBySeller);
 
         return "sales";
     }
