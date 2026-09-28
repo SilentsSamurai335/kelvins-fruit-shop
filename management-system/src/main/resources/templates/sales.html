@@ -142,7 +142,10 @@
 
                             <input type="text" name="search" class="form-control bg-dark text-light border-secondary me-2" placeholder="Search sales...">
                             <button type="submit" class="btn btn-warning">Search</button>
-                            <a th:href="@{/sales}" class="btn btn-outline-danger">Clear</a>
+
+                            <div class="ms-auto d-flex gap-2">
+                                <a th:href="@{/sales}" class="btn btn-outline-danger ms-3">Clear</a>
+                            </div>
                         </div>
                     </form>
 
@@ -399,8 +402,7 @@
 
                     <label class="form-label text-muted small fw-bold mt-2">Payment Method</label>
                     <!-- Actual submitted value -->
-                    <input type="hidden" th:field="*{paymentMethod}" id="actualPaymentMethod" />
-
+                    <input type="hidden" name="paymentMethod" th:value="*{paymentMethod}" id="actualPaymentMethod" />
                     <!-- UI Selector -->
                     <select class="form-select form-select-sm mb-2" id="editPaymentMethodSelect" onchange="toggleEditSplit()">
                         <option value="CASH">CASH</option>
@@ -430,56 +432,76 @@
         </div>
     </div>
 </div>
-<script>
-    // Opens the mix modal specifically for the Edit Form
-    function openEditMixModal() {
-        // Reset modal fields
-        document.getElementById('mixBaseDisplay').value = "Custom Mix Base";
-        document.getElementById('mixQty').value = 1;
-        document.getElementById('mixSize').value = "250";
-        document.getElementById('mixinsContainer').innerHTML = '';
+    <!-- Hidden Thymeleaf Template for Beverages -->
+    <div id="beverageTemplate" style="display: none;">
+        <select class="form-select mixin-select">
+            <option value="">Select Beverage...</option>
+            <!-- Loops through products and ONLY includes Beverages -->
+            <th:block th:each="p : ${listProducts}" th:if="${#strings.equalsIgnoreCase(p.category, 'Beverage')}">
+                <option th:value="${p.name}" th:text="${p.name}"></option>
+            </th:block>
+        </select>
+    </div>
 
-        // Create first row
-        addMixinRow();
+    <!-- The Custom Mix Modal -->
+    <div class="modal fade" id="mixModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-light border-secondary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title fw-bold text-warning">🍹 Create Custom Mix</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- NEW: Base Flavor Selector -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold mb-1 small text-uppercase">Base Flavor:</label>
+                        <select id="mixBaseFlavor" class="form-select form-select-sm bg-dark text-white border-secondary">
+                            <option value="">Select Base Flavor...</option>
+                            <th:block th:each="p : ${listProducts}" th:if="${#strings.equalsIgnoreCase(p.category, 'Beverage')}">
+                                <option th:value="${p.name}" th:text="${p.name}"></option>
+                            </th:block>
+                        </select>
+                    </div>
 
-        // Since we don't have a rigid base price here, default to standard pricing
-        document.getElementById('mixModal').dataset.p250 = "60";
-        document.getElementById('mixModal').dataset.p500 = "120";
-        updateMixPrice();
+                    <!-- Add Mixins -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="form-label fw-bold mb-0 small text-uppercase">Mix With:</label>
+                            <button type="button" class="btn btn-sm btn-outline-warning fw-bold" onclick="addMixinRow()">+ Add Flavor</button>
+                        </div>
+                        <div id="mixinsContainer"></div>
+                    </div>
 
-        new bootstrap.Modal(document.getElementById('mixModal')).show();
-    }
+                    <!-- Size & Quantity -->
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label fw-bold small text-muted">Size</label>
+                            <select id="mixSize" class="form-select form-select-sm" onchange="updateMixPrice()">
+                                <option value="250">250ml</option>
+                                <option value="500">500ml</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold small text-muted">Quantity</label>
+                            <input type="number" id="mixQty" class="form-control form-control-sm" value="1" min="1" onchange="updateMixPrice()">
+                        </div>
+                    </div>
 
-    // Rewired for Sales History: Updates the Edit Form Dropdown
-    function submitMix() {
-        const size = document.getElementById('mixSize').value;
-        const qty = parseInt(document.getElementById('mixQty').value) || 1;
+                    <!-- Estimated Total -->
+                    <div class="mt-4 p-3 rounded bg-black text-center border border-secondary">
+                        <small class="text-muted d-block small">ESTIMATED TOTAL</small>
+                        <h3 class="fw-bold text-success mb-0" id="mixTotalPrice">KES 60</h3>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-success fw-bold w-100" onclick="submitMix()">Confirm Mix</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        const selects = document.querySelectorAll('.mixin-select');
-        let mixins = [];
-        selects.forEach(s => { if(s.value) mixins.push(s.value); });
-
-        let finalName = "Custom Mix (" + size + "ml)";
-        if(mixins.length > 0) finalName += " w/ " + mixins.join(" & ");
-
-        const modal = document.getElementById('mixModal');
-        let unitPrice = (size === "500") ? parseFloat(modal.dataset.p500) : parseFloat(modal.dataset.p250);
-
-        // 1. Inject the new mix into the edit dropdown and select it
-        let select = document.getElementById("editItemSelect");
-        let option = document.createElement("option");
-        option.value = finalName;
-        option.text = finalName;
-        select.add(option);
-        select.value = finalName;
-
-        // 2. Automatically update the quantity and total amount fields to match
-        document.getElementById("editQty").value = qty;
-        document.getElementById("editTotalAmount").value = unitPrice * qty;
-
-        bootstrap.Modal.getInstance(document.getElementById('mixModal')).hide();
-
-        // Run when modal loads to populate the fields correctly
+    <script>
+        // --- 1. PRE-FILL EDIT MODAL ON LOAD ---
         document.addEventListener("DOMContentLoaded", function () {
             const rawMethodInput = document.getElementById("actualPaymentMethod");
             if (!rawMethodInput) return;
@@ -507,92 +529,7 @@
             }
         });
 
-        function toggleEditSplit() {
-            const select = document.getElementById("editPaymentMethodSelect");
-            const splitDiv = document.getElementById("editSplitFields");
-            splitDiv.style.display = (select.value === "SPLIT") ? "flex" : "none";
-        }
-
-        function handleEditSubmit() {
-            const selected = document.getElementById("editPaymentMethodSelect").value;
-            const actualInput = document.getElementById("actualPaymentMethod");
-
-            if (selected === "SPLIT") {
-                const mpesa = parseFloat(document.getElementById("editSplitMpesa").value) || 0;
-                const cash = parseFloat(document.getElementById("editSplitCash").value) || 0;
-                const total = parseFloat(document.getElementById("editTotalAmount").value) || 0;
-
-                if (mpesa + cash !== total) {
-                    alert(`Split amounts (KES ${mpesa + cash}) must equal the total amount (KES ${total}).`);
-                    return false;
-                }
-
-                actualInput.value = `Split (M-Pesa: ${mpesa}, Cash: ${cash})`;
-            } else {
-                actualInput.value = selected;
-            }
-
-            return true;
-        }
-    }
-</script>
-    <!-- Hidden Thymeleaf Template for Beverages -->
-    <div id="beverageTemplate" style="display: none;">
-        <select class="form-select mixin-select">
-            <option value="">Select Beverage...</option>
-            <!-- Loops through products and ONLY includes Beverages -->
-            <th:block th:each="p : ${listProducts}" th:if="${#strings.equalsIgnoreCase(p.category, 'Beverage')}">
-                <option th:value="${p.name}" th:text="${p.name}"></option>
-            </th:block>
-        </select>
-    </div>
-
-    <!-- The Custom Mix Modal -->
-    <div class="modal fade" id="mixModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content bg-dark text-light border-secondary">
-                <div class="modal-header border-secondary">
-                    <h5 class="modal-title fw-bold text-warning">🍹 Create Custom Mix</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <label class="form-label fw-bold mb-0 small text-uppercase">Mix Flavors:</label>
-                            <button type="button" class="btn btn-sm btn-outline-warning fw-bold" onclick="addMixinRow()">+ Add Flavor</button>
-                        </div>
-                        <!-- Flavors get injected here -->
-                        <div id="mixinsContainer"></div>
-                    </div>
-
-                    <div class="row g-2">
-                        <div class="col-6">
-                            <label class="form-label fw-bold small text-muted">Size</label>
-                            <select id="mixSize" class="form-select form-select-sm" onchange="updateMixPrice()">
-                                <option value="250">250ml</option>
-                                <option value="500">500ml</option>
-                            </select>
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label fw-bold small text-muted">Quantity</label>
-                            <input type="number" id="mixQty" class="form-control form-control-sm" value="1" min="1" onchange="updateMixPrice()">
-                        </div>
-                    </div>
-
-                    <div class="mt-4 p-3 rounded bg-black text-center border border-secondary">
-                        <small class="text-muted d-block small">ESTIMATED TOTAL</small>
-                        <h3 class="fw-bold text-success mb-0" id="mixTotalPrice">KES 60</h3>
-                    </div>
-                </div>
-                <div class="modal-footer border-secondary">
-                    <button type="button" class="btn btn-success fw-bold w-100" onclick="submitMix()">Confirm Mix</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // 1. Toggles the Split input boxes in the Edit Modal
+        // --- 2. TOGGLE SPLIT INPUTS ---
         function toggleEditSplit() {
             const select = document.getElementById("editPaymentMethodSelect");
             const splitDiv = document.getElementById("editSplitFields");
@@ -601,17 +538,43 @@
             }
         }
 
-        // 2. Opens the Mix Modal from the Edit form
+        // --- 3. INTERCEPT & FORMAT EDIT SUBMISSION ---
+        function handleEditSubmit() {
+            const selected = document.getElementById("editPaymentMethodSelect").value;
+            const actualInput = document.getElementById("actualPaymentMethod");
+
+            if (selected === "SPLIT") {
+                const mpesa = parseFloat(document.getElementById("editSplitMpesa").value) || 0;
+                const cash = parseFloat(document.getElementById("editSplitCash").value) || 0;
+
+                // FIX: Look for the exact explicit ID in your HTML
+                const totalInput = document.getElementById("editTotalAmount");
+                const total = totalInput ? parseFloat(totalInput.value) : 0;
+
+                if (mpesa + cash !== total) {
+                    alert(`Split amounts (KES ${mpesa + cash}) must equal the total amount (KES ${total}).`);
+                    return false; // Stops form submission
+                }
+
+                // Inject the formatted string into the hidden input
+                actualInput.value = `Split (M-Pesa: ${mpesa}, Cash: ${cash})`;
+            } else {
+                actualInput.value = selected;
+            }
+
+            return true; // Allows form submission
+        }
+
+        // --- 4. MIX MODAL LOGIC ---
         function openEditMixModal() {
-            document.getElementById('mixinsContainer').innerHTML = ''; // Clear old fields
+            document.getElementById('mixinsContainer').innerHTML = '';
             document.getElementById('mixQty').value = 1;
             document.getElementById('mixSize').value = "250";
-            addMixinRow(); // Add first flavor row automatically
+            addMixinRow();
             updateMixPrice();
             new bootstrap.Modal(document.getElementById('mixModal')).show();
         }
 
-        // 3. Clones the hidden beverage template to create a new dropdown
         function addMixinRow() {
             const container = document.getElementById('mixinsContainer');
             const templateHtml = document.getElementById('beverageTemplate').innerHTML;
@@ -623,34 +586,36 @@
             container.appendChild(rowDiv);
         }
 
-        // 4. Updates price preview (assumes standard pricing)
         function updateMixPrice() {
             const size = document.getElementById('mixSize').value;
             const qty = parseInt(document.getElementById('mixQty').value) || 1;
-            const unitPrice = size === "500" ? 120 : 60; // Adjust standard mix prices here
+            const unitPrice = size === "500" ? 120 : 60;
             document.getElementById('mixTotalPrice').innerText = "KES " + (unitPrice * qty);
         }
 
-        // 5. Injects the created mix back into the Edit Modal
         function submitMix() {
             const size = document.getElementById('mixSize').value;
             const qty = parseInt(document.getElementById('mixQty').value) || 1;
+            const baseFlavor = document.getElementById('mixBaseFlavor').value;
 
-            // Grab all selected flavors
+            if (!baseFlavor) {
+                alert("Please select a Base Flavor.");
+                return;
+            }
+
             const selects = document.querySelectorAll('.mixin-select');
             let mixins = [];
             selects.forEach(s => { if(s.value) mixins.push(s.value); });
 
-            if (mixins.length === 0) {
-                alert("Please select at least one flavor.");
-                return;
+            let finalName = baseFlavor + " (" + size + "ml)";
+            if (mixins.length > 0) {
+                finalName += " w/ " + mixins.join(" & ");
             }
 
-            const finalName = "Custom Mix (" + size + "ml) w/ " + mixins.join(" & ");
             const unitPrice = size === "500" ? 120 : 60;
             const total = unitPrice * qty;
 
-            // Add the new mix to the Edit Modal's item dropdown and select it
+            // FIX: Look for your exact explicit IDs
             const editItemSelect = document.getElementById("editItemSelect");
             const option = document.createElement("option");
             option.value = finalName;
@@ -658,11 +623,9 @@
             editItemSelect.add(option);
             editItemSelect.value = finalName;
 
-            // Update Qty and Amount in the Edit Modal
             document.getElementById("editQty").value = qty;
             document.getElementById("editTotalAmount").value = total;
 
-            // Close Mix Modal
             bootstrap.Modal.getInstance(document.getElementById('mixModal')).hide();
         }
     </script>

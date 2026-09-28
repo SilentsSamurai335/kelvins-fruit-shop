@@ -50,50 +50,27 @@
                     <a href="/analytics?period=all" class="btn btn-outline-secondary btn-sm filter-btn" th:classappend="${period == 'all'} ? 'active'">All Time</a>
                 </div>
 
-                <div class="d-flex flex-wrap gap-3 align-items-end mb-4">
+                <!-- Specific Month Filter -->
+                <form action="/analytics" method="get" class="d-flex gap-1 mb-0 align-items-center">
+                    <label class="small text-muted fw-bold me-1">Month:</label>
+                    <input type="month" name="specificMonth" class="form-control form-control-sm bg-dark text-white border-secondary">
+                    <button type="submit" class="btn btn-sm btn-primary">Filter</button>
+                </form>
 
-                    <!-- 1. Specific Month Filter -->
-                    <form th:action="@{/analytics}" method="get">
-                        <label class="form-label text-light small mb-1">Specific Month</label>
-                        <div class="input-group">
-                            <input type="month" name="specificMonth" class="form-control bg-dark text-light border-secondary">
-                            <button type="submit" class="btn btn-primary" title="Filter by Month"><i class="fas fa-filter"></i></button>
-                        </div>
-                    </form>
+                <!-- Specific Year Filter -->
+                <form action="/analytics" method="get" class="d-flex gap-1 mb-0 align-items-center">
+                    <label class="small text-muted fw-bold me-1">Year:</label>
+                    <input type="number" name="specificYear" placeholder="YYYY" class="form-control form-control-sm bg-dark text-white border-secondary" style="width: 80px;">
+                    <button type="submit" class="btn btn-sm btn-primary">Filter</button>
+                </form>
 
-                    <!-- 2. Specific Year Filter -->
-                    <form th:action="@{/analytics}" method="get">
-                        <label class="form-label text-light small mb-1">Specific Year</label>
-                        <div class="input-group">
-                            <input type="number" name="specificYear" class="form-control bg-dark text-light border-secondary" placeholder="YYYY" min="2020" max="2100">
-                            <button type="submit" class="btn btn-primary" title="Filter by Year"><i class="fas fa-filter"></i></button>
-                        </div>
-                    </form>
-
-                    <!-- 3. Complex Filter (Day + Month) -->
-                    <form th:action="@{/analytics}" method="get" class="d-flex align-items-end gap-2 border border-secondary p-2 rounded">
-                        <div>
-                            <label class="form-label text-light small mb-1">Day of Week</label>
-                            <select name="dayOfWeek" class="form-select bg-dark text-light border-secondary">
-                                <option value="">Any</option>
-                                <option value="MONDAY">Monday</option>
-                                <option value="TUESDAY">Tuesday</option>
-                                <option value="WEDNESDAY">Wednesday</option>
-                                <option value="THURSDAY">Thursday</option>
-                                <option value="FRIDAY">Friday</option>
-                                <option value="SATURDAY">Saturday</option>
-                                <option value="SUNDAY">Sunday</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="form-label text-light small mb-1">In Month</label>
-                            <input type="month" name="complexMonth" class="form-control bg-dark text-light border-secondary">
-                        </div>
-                        <button type="submit" class="btn btn-primary">Apply</button>
-                    </form>
-
+                <!-- Clear & PDF Buttons -->
+                <div class="ms-auto d-flex gap-2">
+                    <a href="/analytics" class="btn btn-sm btn-outline-danger">Clear</a>
+                    <button onclick="window.print()" class="btn btn-sm btn-danger fw-bold">
+                        <i class="fas fa-file-pdf"></i> PDF
+                    </button>
                 </div>
-                <button onclick="exportDocx()" class="btn btn-primary fw-bold shadow-sm"><i class="fas fa-file-word me-2"></i>Download Report</button>
             </div>
 
             <div class="row g-3 mb-4">
@@ -152,14 +129,26 @@
                 </div>
             </div>
 
-            <div class="card shadow-lg h-100">
-                <div class="card-header bg-dark text-light border-secondary fw-bold">
-                    <i class="fas fa-chart-bar me-2 text-primary"></i>Revenue vs. Expenses Overview
+            <!-- Row for Overview Charts -->
+            <div class="row g-4 mb-4">
+                <!-- Bar Chart (Revenue vs Expenses) -->
+                <div class="col-md-6">
+                    <div class="card bg-dark border-secondary h-100">
+                        <div class="card-header border-secondary fw-bold">Revenue vs. Expenses Overview</div>
+                        <div class="card-body" style="height: 300px;">
+                            <canvas id="revenueVsExpenseChart"></canvas>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- PLACE THE CANVAS HERE -->
-                <div class="card-body p-4 bg-dark">
-                    <canvas id="comparisonChart" style="min-height: 300px;"></canvas>
+                <!-- Line Chart (Day of Week) -->
+                <div class="col-md-6">
+                    <div class="card bg-dark border-secondary h-100">
+                        <div class="card-header border-secondary fw-bold">Sales by Day of Week</div>
+                        <div class="card-body" style="height: 300px;">
+                            <canvas id="dowChart"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -209,32 +198,42 @@
 
 <script th:inline="javascript">
     // DATA FROM CONTROLLER
-    const catLabels = [[${catLabels}]];
-    const catData = [[${catData}]];
-    const expLabels = [[${expLabels}]];
-    const expData = [[${expData}]];
-    const dayLabels = [[${dayLabels}]];
-    const dayData = [[${dayData}]];
-    const payLabels = [[${payLabels}]];
-    const payData = [[${payData}]];
-    const rawRevenue = /*[[${totalSales != null ? totalSales : (totalRevenue != null ? totalRevenue : 0)}]]*/ 0;
-    const rawExpenses = /*[[${totalExpenses != null ? totalExpenses : 0}]]*/ 0;
+    const catLabels = /*[[${catLabels}]]*/ [];
+    const catData = /*[[${catData}]]*/ [];
+    const expLabels = /*[[${expLabels}]]*/ [];
+    const expData = /*[[${expData}]]*/ [];
+    const dayLabels = /*[[${dayLabels}]]*/ [];
+    const dayData = /*[[${dayData}]]*/ [];
+    const payLabels = /*[[${payLabels}]]*/ [];
+    const payData = /*[[${payData}]]*/ [];
 
     // CHART 1: SALES PIE
     const c1 = new Chart(document.getElementById('catChart'), {
         type: 'pie',
-        data: { labels: catLabels, datasets: [{ data: catData, backgroundColor: ['#FFD700', '#FF6384', '#36A2EB', '#4BC0C0'] }] },
+        data: {
+            labels: catLabels,
+            datasets: [{
+                data: catData,
+                backgroundColor: ['#FFD700', '#FF6384', '#36A2EB', '#4BC0C0', '#9966FF', '#FF9F40']
+            }]
+        },
         options: { maintainAspectRatio: false }
     });
 
     // CHART 2: EXPENSE PIE
     const c2 = new Chart(document.getElementById('expChart'), {
         type: 'pie',
-        data: { labels: expLabels, datasets: [{ data: expData, backgroundColor: ['#FF5733', '#C70039', '#900C3F', '#581845', '#FFC300'] }] },
+        data: {
+            labels: expLabels,
+            datasets: [{
+                data: expData,
+                backgroundColor: ['#FF5733', '#C70039', '#900C3F', '#581845', '#FFC300']
+            }]
+        },
         options: { maintainAspectRatio: false }
     });
 
-    // CHART 3: DAY OF WEEK LINE
+    // CHART 3: SALES TREND LINE
     const c3 = new Chart(document.getElementById('trendChart'), {
         type: 'line',
         data: {
@@ -251,83 +250,66 @@
         options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
     });
 
-    // CHART 4: PAYMENT PIE
+    // CHART 4: PAYMENT DOUGHNUT (Expanded Color Array)
     const c4 = new Chart(document.getElementById('payChart'), {
         type: 'doughnut',
-        data: { labels: payLabels, datasets: [{ data: payData, backgroundColor: ['#FF9F40', '#36A2EB'] }] },
+        data: {
+            labels: payLabels,
+            datasets: [{
+                data: payData,
+                // Assigned Green, Blue, Yellow, Red, Purple to ensure distinct colors
+                backgroundColor: ['#28a745', '#007bff', '#ffc107', '#dc3545', '#6f42c1']
+            }]
+        },
         options: { maintainAspectRatio: false }
     });
 
-    // 2. Target the exact canvas ID we created
-    const ctx = document.getElementById('comparisonChart').getContext('2d');
+    // --- BOTTOM ROW CHARTS ---
 
-    // 3. Build the Comparative Bar Chart
-    new Chart(ctx, {
+    // REVENUE VS EXPENSES BAR CHART
+    const revTotal = /*[[${totalRevenue != null ? totalRevenue : 0}]]*/ 0;
+    const expTotal = /*[[${totalExpenses != null ? totalExpenses : 0}]]*/ 0;
+
+    new Chart(document.getElementById('revenueVsExpenseChart'), {
         type: 'bar',
         data: {
-            labels: ['Overview (Selected Period)'],
+            labels: ['Overview'],
             datasets: [
                 {
                     label: 'Gross Revenue (KES)',
-                    data: [rawRevenue],
-                    backgroundColor: '#28a745', // Green for Revenue
-                    borderRadius: 4,
-                    barPercentage: 0.6,
-                    categoryPercentage: 0.8
+                    data: [revTotal],
+                    backgroundColor: '#28a745'
                 },
                 {
                     label: 'Total Expenses (KES)',
-                    data: [rawExpenses],
-                    backgroundColor: '#dc3545', // Red for Expenses
-                    borderRadius: 4,
-                    barPercentage: 0.6,
-                    categoryPercentage: 0.8
+                    data: [expTotal],
+                    backgroundColor: '#dc3545'
                 }
             ]
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'top',
-                    labels: { color: '#adb5bd' } // Light text for dark mode
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    grid: { color: '#495057' },
-                    ticks: {
-                        color: '#adb5bd',
-                        callback: function(value) { return value.toLocaleString(); }
-                    }
-                },
-                x: {
-                    grid: { display: false },
-                    ticks: { color: '#adb5bd' }
-                }
-            }
-        }
+        options: { maintainAspectRatio: false }
     });
 
-    // DOCX EXPORT
-    function exportDocx() {
-        // Capture Images
-        document.getElementById('imgCat').src = c1.toBase64Image();
-        document.getElementById('imgExp').src = c2.toBase64Image();
-        document.getElementById('imgDay').src = c3.toBase64Image();
-        document.getElementById('imgPay').src = c4.toBase64Image();
+    // DAY OF WEEK LINE CHART
+    const dowLabels = /*[[${dowLabels}]]*/ [];
+    const dowData = /*[[${dowData}]]*/ [];
 
-        setTimeout(() => {
-            var content = document.getElementById('wordExportTemplate').innerHTML;
-            var htmlDoc = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>${content}</body></html>`;
-            var converted = htmlDocx.asBlob(htmlDoc);
-            saveAs(converted, 'KFF_Financial_Report.docx');
-        }, 500);
-    }
+    new Chart(document.getElementById('dowChart'), {
+        type: 'line',
+        data: {
+            labels: dowLabels,
+            datasets: [{
+                label: 'Sales Revenue (KES)',
+                data: dowData,
+                borderColor: '#17a2b8',
+                backgroundColor: 'rgba(23, 162, 184, 0.2)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: { maintainAspectRatio: false }
+    });
 </script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     fetch('/api/financial/hourly-traffic')
         .then(response => response.json())

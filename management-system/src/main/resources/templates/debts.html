@@ -44,6 +44,7 @@
                                 <th class="ps-4">Date Issued</th>
                                 <th>Debtor Name</th>
                                 <th>Items Taken</th>
+                                <th>Seller</th>
                                 <th class="text-primary">Amount</th>
                                 <th class="text-end pe-4">Action</th>
                             </tr>
@@ -53,6 +54,7 @@
                                 <td class="ps-4 text-muted" th:text="${#temporals.format(debt.saleDateTime, 'dd MMM yyyy, HH:mm')}"></td>
                                 <td class="fw-bold text-uppercase" th:text="${debt.debtorName}"></td>
                                 <td th:text="${debt.itemsSold}"></td>
+                                <td th:text="${debt.seller}"></td>
                                 <td class="text-primary fw-bold" th:text="${'KES ' + #numbers.formatDecimal(debt.totalAmount, 1, 'COMMA', 2, 'POINT')}"></td>
                                 <td class="text-end pe-4">
                                     <button class="btn btn-sm btn-success fw-bold"

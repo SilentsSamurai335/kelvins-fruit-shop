@@ -161,6 +161,10 @@
                                         </select>
                                     </div>
                                     <button type="submit" class="btn btn-sm btn-dark">Filter</button>
+
+                                    <div class="ms-auto d-flex gap-2">
+                                        <a th:href="@{/expenses}" class="btn btn-sm btn-outline-danger">Clear</a>
+                                    </div>
                                 </form>
                             </div>
 
@@ -372,22 +376,40 @@
                                                 <th>Date</th>
                                                 <th>Category</th>
                                                 <th>Details</th>
+                                                <th>Quantity</th>
                                                 <th>Cost</th>
                                                 <th>Tx Cost</th>
                                                 <th>
-                                                    <div class="no-print">
-                                                    </div>
+                                                    <div class="no-print"></div>
                                                     Action
                                                 </th>
 
                                             </tr>
                                             </thead>
                                             <tbody>
-                                            <!-- Loop through the expenses inside this specific month -->
                                             <tr th:each="exp : ${entry.value}">
                                                 <td th:text="${exp.date}"></td>
                                                 <td th:text="${exp.category}"></td>
-                                                <td th:text="${exp.itemName}"></td>
+
+                                                <!-- UPDATED DETAILS COLUMN: Handles standard items vs Transport -->
+                                                <td>
+                                                    <!-- If the expense is Transport, format the custom fields -->
+                                                    <th:block th:if="${exp.category == 'Transport'}">
+                                                        <span th:if="${exp.trips != null}" th:text="${exp.trips + ' Trips: '}"></span>
+                                                        <span th:if="${exp.startLocation != null}" th:text="${exp.startLocation}"></span>
+                                                        <span th:if="${exp.endLocation != null}" th:text="${' to ' + exp.endLocation}"></span>
+                                                        <span th:if="${!#strings.isEmpty(exp.description)}" th:text="${' (' + exp.description + ')'}"></span>
+                                                    </th:block>
+
+                                                    <!-- Otherwise, just show the standard itemName -->
+                                                    <th:block th:unless="${exp.category == 'Transport'}">
+                                                        <span th:text="${exp.itemName}"></span>
+                                                    </th:block>
+                                                </td>
+
+                                                <!-- NEW QUANTITY COLUMN: Shows N/A if the field is empty -->
+                                                <td th:text="${#strings.isEmpty(exp.quantity) ? 'N/A' : exp.quantity}"></td>
+
                                                 <td class="text-danger fw-bold" th:text="${exp.amount}"></td>
                                                 <td class="text-warning" th:text="${exp.transactionCost != null ? exp.transactionCost : '0.0'}"></td>
                                                 <td class="no-print">

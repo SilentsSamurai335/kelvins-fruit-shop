@@ -117,30 +117,30 @@
                         <thead><tr><th colspan="3" class="text-center fw-bold fs-5 mt-3">Cost of Goods Sold</th></tr></thead>
                         <tbody>
                         <tr><td colspan="3" class="fw-bold ps-4">Juice Ingredients</td></tr>
-                        <tr th:each="exp : ${cogsJuice}">
-                            <td class="ps-5" th:text="${exp.itemName} + ' (' + ${exp.quantity} + ')'"></td>
-                            <td class="text-end text-danger" th:text="${#numbers.formatDecimal(exp.amount, 1, 'COMMA', 0, 'POINT')}"></td>
+                        <tr th:each="entry : ${cogsJuice}">
+                            <td class="ps-5" th:text="${entry.key}"></td>
+                            <td class="text-end text-danger" th:text="${#numbers.formatDecimal(entry.value, 1, 'COMMA', 0, 'POINT')}"></td>
                             <td></td>
                         </tr>
 
                         <tr><td colspan="3" class="fw-bold ps-4">Uji Ingredients</td></tr>
-                        <tr th:each="exp : ${cogsUji}">
-                            <td class="ps-5" th:text="${exp.itemName}"></td>
-                            <td class="text-end text-danger" th:text="${#numbers.formatDecimal(exp.amount, 1, 'COMMA', 0, 'POINT')}"></td>
+                        <tr th:each="entry : ${cogsUji}">
+                            <td class="ps-5" th:text="${entry.key}"></td>
+                            <td class="text-end text-danger" th:text="${#numbers.formatDecimal(entry.value, 1, 'COMMA', 0, 'POINT')}"></td>
                             <td></td>
                         </tr>
 
                         <tr><td colspan="3" class="fw-bold ps-4">Coffee Ingredients</td></tr>
-                        <tr th:each="exp : ${cogsCoffee}">
-                            <td class="ps-5" th:text="${exp.itemName} + ' (' + ${exp.quantity} + ')'"></td>
-                            <td class="text-end text-danger" th:text="${#numbers.formatDecimal(exp.amount, 1, 'COMMA', 0, 'POINT')}"></td>
+                        <tr th:each="entry : ${cogsCoffee}">
+                            <td class="ps-5" th:text="${entry.key}"></td>
+                            <td class="text-end text-danger" th:text="${#numbers.formatDecimal(entry.value, 1, 'COMMA', 0, 'POINT')}"></td>
                             <td></td>
                         </tr>
 
                         <tr><td colspan="3" class="fw-bold ps-4">Shared (Sugar/Spices)</td></tr>
-                        <tr th:each="exp : ${cogsShared}">
-                            <td class="ps-5" th:text="${exp.itemName}"></td>
-                            <td class="text-end text-danger" th:text="${#numbers.formatDecimal(exp.amount, 1, 'COMMA', 0, 'POINT')}"></td>
+                        <tr th:each="entry : ${cogsShared}">
+                            <td class="ps-5" th:text="${entry.key}"></td>
+                            <td class="text-end text-danger" th:text="${#numbers.formatDecimal(entry.value, 1, 'COMMA', 0, 'POINT')}"></td>
                             <td></td>
                         </tr>
 
@@ -155,9 +155,9 @@
 
                         <thead><tr><th colspan="3" class="fw-bold fs-5 mt-3">Less Other Expenses</th></tr></thead>
                         <tbody>
-                        <tr th:each="exp : ${expOps}">
-                            <td class="ps-5" th:text="${exp.category} + ': ' + ${exp.itemName}"></td>
-                            <td class="text-end text-danger" th:text="${#numbers.formatDecimal(exp.amount, 1, 'COMMA', 0, 'POINT')}"></td>
+                        <tr th:each="entry : ${expOps}">
+                            <td class="ps-5" th:text="${entry.key}"></td>
+                            <td class="text-end text-danger" th:text="${#numbers.formatDecimal(entry.value, 1, 'COMMA', 0, 'POINT')}"></td>
                             <td></td>
                         </tr>
 

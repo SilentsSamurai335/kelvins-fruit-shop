@@ -31,7 +31,7 @@ public class ProductController {
     @Autowired private ExpenseRepository expenseRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private TeamLogRepository teamLogRepository;
-
+    @Autowired private OperatingCashRepository cashRepo;
     // --- LOGIN & DASHBOARD ---
     @GetMapping("/login")
     public String showLoginPage() { return "login"; }
@@ -45,20 +45,25 @@ public class ProductController {
         Map<LocalDate, Double> trendMap = new TreeMap<>();
 
         for (Sale sale : allSales) {
+            // Product Popularity logic
             if (sale.getItemsSold() != null) {
                 String raw = sale.getItemsSold();
                 String clean = raw.contains(" (") ? raw.substring(0, raw.lastIndexOf(" (")) : raw;
                 productMap.put(clean, productMap.getOrDefault(clean, 0) + 1);
             }
-            if (sale.getSaleDateTime() != null) {
+
+            // Trend Chart logic (NEW: Excludes DEBT)
+            if (sale.getSaleDateTime() != null && !"DEBT".equalsIgnoreCase(sale.getPaymentMethod())) {
                 LocalDate date = sale.getSaleDateTime().toLocalDate();
                 trendMap.put(date, trendMap.getOrDefault(date, 0.0) + sale.getTotalAmount());
             }
         }
 
-        double todaySalesTotal = saleRepository.findAll().stream()
+        // Today's Sales logic (NEW: Reuses allSales list and excludes DEBT)
+        double todaySalesTotal = allSales.stream()
                 .filter(sale -> sale.getSaleDateTime() != null)
                 .filter(sale -> sale.getSaleDateTime().toLocalDate().equals(today))
+                .filter(sale -> !"DEBT".equalsIgnoreCase(sale.getPaymentMethod()))
                 .mapToDouble(Sale::getTotalAmount)
                 .sum();
 
@@ -79,7 +84,31 @@ public class ProductController {
         }
         model.addAttribute("hasNewMessage", hasNewMessage);
 
+        // Cash at Hand
+        OperatingCash cashAtHand = cashRepo.findById(1L).orElse(new OperatingCash());
+        model.addAttribute("cashAtHand", cashAtHand.getAmount());
+
+        // Calculate total unpaid debts globally
+        double totalOutstandingDebt = allSales.stream()
+                .filter(sale -> "DEBT".equalsIgnoreCase(sale.getPaymentMethod()))
+                .mapToDouble(Sale::getTotalAmount)
+                .sum();
+
+        model.addAttribute("totalOutstandingDebt", totalOutstandingDebt);
+
         return "index";
+    }
+
+    // NEW: Fixed URL path and proper redirect
+    @PostMapping("/update-cash")
+    public String updateCash(@RequestParam Double newCashAmount) {
+        OperatingCash cash = cashRepo.findById(1L).orElse(new OperatingCash());
+        cash.setId(1L);
+        cash.setAmount(newCashAmount);
+        cashRepo.save(cash);
+
+        // Redirects back to the GetMapping so the dashboard reloads fully populated
+        return "redirect:/";
     }
 
     // --- INVENTORY ---
@@ -325,13 +354,16 @@ public class ProductController {
         }
 
         for (Map.Entry<String, List<Sale>> entry : groupedSales.entrySet()) {
-            double total = entry.getValue().stream().mapToDouble(Sale::getTotalAmount).sum();
+            double total = entry.getValue().stream()
+                    .filter(s -> !"DEBT".equalsIgnoreCase(s.getPaymentMethod())) // NEW: Exclude debts
+                    .mapToDouble(Sale::getTotalAmount).sum();
             monthlyTotals.put(entry.getKey(), total);
         }
 
         // --- NEW: Group the FILTERED sales by seller for dynamic cards ---
         Map<String, Double> dynamicSalesBySeller = sales.stream()
                 .filter(s -> !"Admin".equalsIgnoreCase(s.getSeller()))
+                .filter(s -> !"DEBT".equalsIgnoreCase(s.getPaymentMethod())) // NEW: Exclude debts
                 .collect(Collectors.groupingBy(
                         s -> {
                             String sellerName = s.getSeller();
@@ -343,7 +375,9 @@ public class ProductController {
                         Collectors.summingDouble(Sale::getTotalAmount)
                 ));
 
-        double totalRevenue = sales.stream().mapToDouble(Sale::getTotalAmount).sum();
+        double totalRevenue = sales.stream()
+                .filter(s -> !"DEBT".equalsIgnoreCase(s.getPaymentMethod()))
+                .mapToDouble(Sale::getTotalAmount).sum();
 
         model.addAttribute("listSales", sales);
         model.addAttribute("totalRevenue", totalRevenue);
@@ -391,6 +425,7 @@ public class ProductController {
                 .orElseThrow(() -> new IllegalArgumentException("Invalid sale Id"));
 
         // Update the specific fields from the modal
+        existingSale.setItemsSold(editedSale.getItemsSold());
         existingSale.setTotalAmount(editedSale.getTotalAmount());
         existingSale.setQuantity(editedSale.getQuantity());
         existingSale.setPaymentMethod(editedSale.getPaymentMethod());
@@ -581,6 +616,42 @@ public class ProductController {
     }
 
     // --- INCOME STATEMENT (FIXED: Added Calculations back) ---
+    // Helper 1: Groups COGS items by their Item Name
+    private Map<String, Double> groupExpensesByName(List<Expense> expenses) {
+        return expenses.stream().collect(Collectors.groupingBy(
+                e -> {
+                    // Determine the name
+                    if (e.getItemName() != null && !e.getItemName().isEmpty()) {
+                        return e.getItemName();
+                    }
+                    return e.getCategory() != null ? e.getCategory() : "Other";
+                },
+                Collectors.summingDouble(e -> {
+                    // Sum the amounts
+                    double amount = e.getAmount();
+                    double txCost = e.getTransactionCost() != null ? e.getTransactionCost() : 0.0;
+                    return amount + txCost;
+                })
+        ));
+    }
+
+    // Helper 2: Groups Operations items by "Category: Name"
+    private Map<String, Double> groupOpsExpenses(List<Expense> expenses) {
+        return expenses.stream().collect(Collectors.groupingBy(
+                e -> {
+                    // Combine category and name
+                    String itemName = e.getItemName() != null ? e.getItemName() : "";
+                    return e.getCategory() + ": " + itemName;
+                },
+                Collectors.summingDouble(e -> {
+                    // Sum the amounts
+                    double amount = e.getAmount();
+                    double txCost = e.getTransactionCost() != null ? e.getTransactionCost() : 0.0;
+                    return amount + txCost;
+                })
+        ));
+    }
+
     @GetMapping("/income-statement")
     public String showIncomeStatement(@RequestParam(value = "month", required = false) Integer month,
                                       @RequestParam(value = "year", required = false) Integer year,
@@ -604,10 +675,13 @@ public class ProductController {
         for (Sale s : sales) {
             if (s.getSaleDateTime() != null) {
                 LocalDate d = s.getSaleDateTime().toLocalDate();
-                if (!d.isBefore(start) && !d.isAfter(end)) {
+                // Ignore debts and ensure date falls within selected month
+                if (!d.isBefore(start) && !d.isAfter(end) && !"DEBT".equalsIgnoreCase(s.getPaymentMethod())) {
                     String item = (s.getItemsSold() != null) ? s.getItemsSold().toLowerCase() : "";
                     double amt = s.getTotalAmount();
-                    boolean isMp = "Mpesa".equalsIgnoreCase(s.getPaymentMethod());
+
+                    // Group SPLIT payments properly or count MPESA
+                    boolean isMp = s.getPaymentMethod() != null && s.getPaymentMethod().toUpperCase().contains("MPESA");
 
                     if (item.contains("uji")) {
                         if (isMp) ujiMpesa += amt; else ujiCash += amt;
@@ -644,15 +718,23 @@ public class ProductController {
             if ("Juice Ingredients".equalsIgnoreCase(c)) cJuice.add(e);
             else if ("Uji Ingredients".equalsIgnoreCase(c)) cUji.add(e);
             else if ("Coffee Ingredients".equalsIgnoreCase(c)) cCoffee.add(e);
-            else if ("Sugar".equalsIgnoreCase(c) || "Spices".equalsIgnoreCase(c) || "Shared".equalsIgnoreCase(c)) cShared.add(e);
+            else if ("Sugar".equalsIgnoreCase(c) || "Spices".equalsIgnoreCase(c) || "Shared".equalsIgnoreCase(c) || "Blending Water".equalsIgnoreCase(c) || "Packaging".equalsIgnoreCase(c) || "Snacks".equalsIgnoreCase(c)) cShared.add(e);
             else eOps.add(e);
         }
 
-        double tCogs = cJuice.stream().mapToDouble(Expense::getAmount).sum() + cCoffee.stream().mapToDouble(Expense::getAmount).sum() + cUji.stream().mapToDouble(Expense::getAmount).sum() + cShared.stream().mapToDouble(Expense::getAmount).sum();
-        double tOps = eOps.stream().mapToDouble(Expense::getAmount).sum();
+        // Ensure totals include both amount and transaction costs
+        double tCogs = 0.0;
+        for (Expense e : cJuice) tCogs += e.getAmount() + e.getTransactionCost();
+        for (Expense e : cCoffee) tCogs += e.getAmount() + e.getTransactionCost();
+        for (Expense e : cUji) tCogs += e.getAmount() + e.getTransactionCost();
+        for (Expense e : cShared) tCogs += e.getAmount() + e.getTransactionCost();
+
+        double tOps = 0.0;
+        for (Expense e : eOps) tOps += e.getAmount() + e.getTransactionCost();
         double gross = totalSales - tCogs;
         double net = gross - tOps;
 
+        // 3. PASS TO MODEL
         model.addAttribute("periodTitle", Month.of(curMonth).name() + " " + curYear);
         model.addAttribute("juiceCash", juiceCash); model.addAttribute("juiceMpesa", juiceMpesa);
         model.addAttribute("ujiCash", ujiCash); model.addAttribute("ujiMpesa", ujiMpesa);
@@ -662,8 +744,14 @@ public class ProductController {
         model.addAttribute("spiceCash", spiceCash); model.addAttribute("spiceMpesa", spiceMpesa);
         model.addAttribute("snackCash", snackCash); model.addAttribute("snackMpesa", snackMpesa);
         model.addAttribute("totalSales", totalSales);
-        model.addAttribute("cogsJuice", cJuice); model.addAttribute("cogsUji", cUji); model.addAttribute("cogsCoffee", cCoffee) ; model.addAttribute("cogsShared", cShared);
-        model.addAttribute("expOps", eOps);
+
+        // Use the helper methods to group identical items
+        model.addAttribute("cogsJuice", groupExpensesByName(cJuice));
+        model.addAttribute("cogsUji", groupExpensesByName(cUji));
+        model.addAttribute("cogsCoffee", groupExpensesByName(cCoffee));
+        model.addAttribute("cogsShared", groupExpensesByName(cShared));
+        model.addAttribute("expOps", groupOpsExpenses(eOps));
+
         model.addAttribute("totalCogs", tCogs); model.addAttribute("totalOps", tOps);
         model.addAttribute("grossProfit", gross); model.addAttribute("netProfit", net);
         model.addAttribute("selectedMonth", curMonth); model.addAttribute("selectedYear", curYear);
@@ -825,201 +913,198 @@ public class ProductController {
     // ==========================================
     // 9. ANALYTICS & FINANCIAL REVIEW (DYNAMIC)
     // ==========================================
+    // HELPER: Groups raw items into main categories
+    private String getExpenseMainCategory(String category) {
+        if (category == null) return "Other";
+        if (List.of("Sugar", "Juice Ingredients", "Uji Ingredients", "Coffee Ingredients", "Snacks", "Spices", "Packaging", "Blending Water").contains(category)) return "Stocks";
+        if (List.of("Rent", "Gas", "Tap Water", "Token", "Garbage").contains(category)) return "Utilities";
+        if (List.of("Transport", "Lunch", "Maintenance").contains(category)) return "Operations";
+        if ("Honorarium".equals(category)) return "Honorarium";
+        return "Other";
+    }
+
     @GetMapping("/analytics")
     public String showAnalytics(@RequestParam(value = "period", defaultValue = "monthly") String period,
                                 @RequestParam(required = false) String specificMonth,
                                 @RequestParam(required = false) String specificYear,
-                                @RequestParam(required = false) String dayOfWeek,
-                                @RequestParam(required = false) String complexMonth,
                                 Model model, Principal principal) {
+
         if (principal == null || !"Kelvin".equals(principal.getName())) return "redirect:/";
 
         LocalDate today = LocalDate.now();
-        LocalDateTime startDateTime;
+        LocalDateTime startDateTime = today.minusYears(100).atStartOfDay(); // Default to all time unless filtered
         LocalDateTime endDateTime = LocalDateTime.now();
         String trendTitle = "Sales Trend";
 
-        // 1. CONFIGURE DATES & LABELS
-        // Use LinkedHashMap to keep the order (e.g., Jan, Feb...)
+        // 1. SETUP BASE TREND MAP
         Map<String, Double> trendMap = new LinkedHashMap<>();
-
         if ("daily".equals(period)) {
             startDateTime = today.atStartOfDay();
-            endDateTime = today.atTime(23, 59, 59);
             trendTitle = "Today's Hourly Performance";
             for (int i = 8; i <= 22; i++) trendMap.put(String.format("%02d:00", i), 0.0);
-        }
-        else if ("weekly".equals(period)) {
-            // Start from Monday
+        } else if ("weekly".equals(period)) {
             startDateTime = today.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY)).atStartOfDay();
             trendTitle = "This Week (Daily)";
             String[] days = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
             for (String d : days) trendMap.put(d, 0.0);
-        }
-        else if ("monthly".equals(period)) {
+        } else if ("monthly".equals(period)) {
             startDateTime = today.withDayOfMonth(1).atStartOfDay();
             trendTitle = "This Month (Weekly)";
             for (int i = 1; i <= 5; i++) trendMap.put("Week " + i, 0.0);
-        }
-        else if ("annually".equals(period)) {
+        } else if ("annually".equals(period)) {
             startDateTime = today.withDayOfYear(1).atStartOfDay();
             trendTitle = "This Year (Monthly)";
             String[] months = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
             for (String m : months) trendMap.put(m, 0.0);
-        }
-        else {
-            // ALL TIME (Last 5 Years)
+        } else if ("all".equals(period)) {
             startDateTime = today.minusYears(4).withDayOfYear(1).atStartOfDay();
             trendTitle = "All Time (Yearly)";
             int currentYear = today.getYear();
-            for (int i = currentYear - 4; i <= currentYear; i++) {
-                trendMap.put(String.valueOf(i), 0.0);
-            }
+            for (int i = currentYear - 4; i <= currentYear; i++) trendMap.put(String.valueOf(i), 0.0);
         }
-        // 1. FETCH DATA
-        List<Sale> rawSales = saleRepository.findBySaleDateTimeBetween(startDateTime, endDateTime);
-        List<Expense> expenses = expenseRepository.findAll();
 
-        // 2. APPLY UI FILTERS TO THE MAIN LIST BEFORE AGGREGATION
-        List<Sale> sales = rawSales.stream().filter(sale -> {
+        // 2. FETCH AND FILTER SALES
+        List<Sale> allSales = saleRepository.findAll();
+        LocalDateTime finalStartDateTime = startDateTime;
+
+        List<Sale> filteredSales = allSales.stream().filter(sale -> {
             if (sale.getSaleDateTime() == null) return false;
-
             LocalDateTime time = sale.getSaleDateTime();
-            boolean matches = true;
-            String saleYearMonth = String.format("%04d-%02d", time.getYear(), time.getMonthValue());
 
-            // Specific Month
-            if (specificMonth != null && !specificMonth.isEmpty() && !saleYearMonth.equals(specificMonth)) matches = false;
+            // Check if the user is using the explicit search boxes
+            boolean hasExplicitFilter = (specificMonth != null && !specificMonth.isEmpty()) ||
+                    (specificYear != null && !specificYear.isEmpty());
 
-            // Specific Year
-            if (specificYear != null && !specificYear.isEmpty() && time.getYear() != Integer.parseInt(specificYear)) matches = false;
-
-            // Complex Filter (Day of Week + Month)
-            if (complexMonth != null && !complexMonth.isEmpty() && dayOfWeek != null && !dayOfWeek.isEmpty()) {
-                if (!saleYearMonth.equals(complexMonth) || !time.getDayOfWeek().name().equalsIgnoreCase(dayOfWeek)) {
-                    matches = false;
+            if (hasExplicitFilter) {
+                // Apply custom Month/Year filters and ignore the default "Current Month" cutoff
+                if (specificMonth != null && !specificMonth.isEmpty()) {
+                    String saleYearMonth = String.format("%04d-%02d", time.getYear(), time.getMonthValue());
+                    if (!saleYearMonth.equals(specificMonth)) return false;
                 }
+                if (specificYear != null && !specificYear.isEmpty()) {
+                    if (time.getYear() != Integer.parseInt(specificYear)) return false;
+                }
+            } else {
+                // Standard Quick View bounds (e.g., this week, today, this month)
+                if (time.isBefore(finalStartDateTime) || time.isAfter(endDateTime)) return false;
             }
-            return matches;
+
+            return true;
         }).collect(Collectors.toList());
 
-        // 3. AGGREGATE
+        // 3. AGGREGATE SALES DATA
         double totalRevenue = 0;
         Map<String, Double> catRevenue = new HashMap<>();
         Map<String, Double> paymentMap = new HashMap<>();
 
-        for (Sale s : sales) {
+        Map<String, Double> salesByDay = new LinkedHashMap<>();
+        Arrays.asList("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY")
+                .forEach(d -> salesByDay.put(d, 0.0));
+
+        for (Sale s : filteredSales) {
+            if ("DEBT".equalsIgnoreCase(s.getPaymentMethod())) continue;
+
             double amt = s.getTotalAmount();
             totalRevenue += amt;
 
-            // Categories
-            String item = (s.getItemsSold() != null) ? s.getItemsSold().toLowerCase() : "";
-            String cat = "Other";
-            if (item.contains("juice") || item.contains("passion") || item.contains("mango")) cat = "Juices";
-            else if (item.contains("uji")) cat = "Uji";
-            else if (item.contains("coffee")) cat = "Coffee";
-            else if (item.contains("cupcake") || item.contains("cake")) cat = "Cupcakes";
-            else if (item.contains("cookie")) cat = "Cookies";
-            catRevenue.put(cat, catRevenue.getOrDefault(cat, 0.0) + amt);
+            // Grouping Item Names: Catch "Juice" and clean up "Custom Mix"
+            String item = (s.getItemsSold() != null) ? s.getItemsSold() : "Unknown";
+            if (item.toLowerCase().contains("juice")) {
+                item = "Juices";
+            } else if (item.startsWith("Custom Mix")) {
+                item = "Custom Mix";
+            }
+            catRevenue.put(item, catRevenue.getOrDefault(item, 0.0) + amt);
 
-            // Payments
-            paymentMap.put(s.getPaymentMethod(), paymentMap.getOrDefault(s.getPaymentMethod(), 0.0) + amt);
+            // Standardize Payment Methods (Fixes duplicates)
+            String method = (s.getPaymentMethod() != null) ? s.getPaymentMethod().toUpperCase() : "UNKNOWN";
+            if (method.startsWith("SPLIT")) method = "SPLIT";
+            paymentMap.put(method, paymentMap.getOrDefault(method, 0.0) + amt);
 
-            // Trend Logic
+            // Day of Week Line Chart Data
+            String dayName = s.getSaleDateTime().getDayOfWeek().name();
+            salesByDay.put(dayName, salesByDay.getOrDefault(dayName, 0.0) + amt);
+
+            // Trend Area Chart Logic
             LocalDateTime time = s.getSaleDateTime();
             String key = "";
-
             if ("daily".equals(period)) {
                 int h = time.getHour();
                 if(h >= 8 && h <= 22) key = String.format("%02d:00", h);
-            }
-            else if ("weekly".equals(period)) {
-                String d = time.getDayOfWeek().name(); // MONDAY
-                key = d.substring(0, 1) + d.substring(1, 3).toLowerCase(); // Mon
-            }
-            else if ("monthly".equals(period)) {
+            } else if ("weekly".equals(period)) {
+                String d = time.getDayOfWeek().name();
+                key = d.substring(0, 1) + d.substring(1, 3).toLowerCase();
+            } else if ("monthly".equals(period)) {
                 int day = time.getDayOfMonth();
                 int week = (day - 1) / 7 + 1;
-                if(week > 5) week = 5;
-                key = "Week " + week;
-            }
-            else if ("annually".equals(period)) {
+                key = "Week " + (Math.min(week, 5));
+            } else if ("annually".equals(period)) {
                 String m = time.getMonth().name();
-                key = m.substring(0, 1) + m.substring(1, 3).toLowerCase(); // Jan
-            }
-            else { // All Time
+                key = m.substring(0, 1) + m.substring(1, 3).toLowerCase();
+            } else {
                 key = String.valueOf(time.getYear());
             }
 
-            if (trendMap.containsKey(key)) {
-                trendMap.put(key, trendMap.getOrDefault(key, 0.0) + amt);
-            }
+            if (trendMap.containsKey(key)) trendMap.put(key, trendMap.get(key) + amt);
         }
 
-        // Expenses
+        // 4. FETCH AND FILTER EXPENSES
+        List<Expense> allExpenses = expenseRepository.findAll();
+        double totalExpenses = 0.0;
         Map<String, Double> expMap = new HashMap<>();
-        for(Expense e : expenses) {
-            // Rough date filter for expenses to match period context
-            if(!e.getDate().isBefore(startDateTime.toLocalDate())) {
-                expMap.put(e.getCategory(), expMap.getOrDefault(e.getCategory(), 0.0) + e.getAmount());
+
+        for (Expense e : allExpenses) {
+            if (e.getDate() != null) {
+                boolean hasExplicitFilter = (specificMonth != null && !specificMonth.isEmpty()) ||
+                        (specificYear != null && !specificYear.isEmpty());
+
+                if (hasExplicitFilter) {
+                    if (specificMonth != null && !specificMonth.isEmpty()) {
+                        String expYearMonth = String.format("%04d-%02d", e.getDate().getYear(), e.getDate().getMonthValue());
+                        if (!expYearMonth.equals(specificMonth)) continue;
+                    }
+                    if (specificYear != null && !specificYear.isEmpty()) {
+                        if (e.getDate().getYear() != Integer.parseInt(specificYear)) continue;
+                    }
+                } else {
+                    if (e.getDate().isBefore(finalStartDateTime.toLocalDate())) continue;
+                }
+
+                double baseCost = e.getAmount();
+                double txCost = e.getTransactionCost() != null ? e.getTransactionCost() : 0.0;
+                double totalCost = baseCost + txCost;
+
+                totalExpenses += totalCost;
+
+                String mainCategory = getExpenseMainCategory(e.getCategory());
+                expMap.put(mainCategory, expMap.getOrDefault(mainCategory, 0.0) + totalCost);
             }
         }
-        // Calculate Total Revenue
-        double totalAmount = saleRepository.findAll().stream()
-                .mapToDouble(Sale::getTotalAmount)
-                .sum();
 
-        // Calculate Total Expenses (assuming you have an expenseRepository)
-        // If you don't have an Expense entity yet, just set this to 0.0 for now!
-        double totalExpenses = expenseRepository.findAll().stream()
-                .mapToDouble(Expense::getAmount)
-                .sum();
-
-        // Compute Net Profit & Margin
         double netProfit = totalRevenue - totalExpenses;
         double profitMargin = (totalRevenue > 0) ? (netProfit / totalRevenue) * 100 : 0.0;
 
-        List<Sale> allSales = saleRepository.findAll();
-
-        List<Sale> filteredSales = allSales.stream().filter(sale -> {
-            if (sale.getSaleDateTime() == null) return false;
-
-            LocalDateTime time = sale.getSaleDateTime();
-            boolean matches = true;
-
-            // HTML type="month" sends data as "YYYY-MM" (e.g., "2026-09")
-            String saleYearMonth = String.format("%04d-%02d", time.getYear(), time.getMonthValue());
-
-            // Check Specific Month Filter
-            if (specificMonth != null && !specificMonth.isEmpty()) {
-                if (!saleYearMonth.equals(specificMonth)) matches = false;
-            }
-
-            // Check Complex Filter (Day of Week + Month)
-            if (complexMonth != null && !complexMonth.isEmpty() && dayOfWeek != null && !dayOfWeek.isEmpty()) {
-                if (!saleYearMonth.equals(complexMonth) || !time.getDayOfWeek().name().equalsIgnoreCase(dayOfWeek)) {
-                    matches = false;
-                }
-            }
-
-            return matches;
-        }).collect(Collectors.toList());
-
-
-
+        // 5. PASS TO MODEL
         model.addAttribute("totalRevenue", totalRevenue);
+        model.addAttribute("totalExpenses", totalExpenses); // Fixes the Bar Chart
+        model.addAttribute("netProfit", netProfit);
+        model.addAttribute("profitMargin", String.format("%.1f", profitMargin));
+
         model.addAttribute("period", period);
         model.addAttribute("trendTitle", trendTitle);
+
+        // Chart Arrays
         model.addAttribute("dayLabels", trendMap.keySet());
         model.addAttribute("dayData", trendMap.values());
+        model.addAttribute("dowLabels", salesByDay.keySet());
+        model.addAttribute("dowData", salesByDay.values());
         model.addAttribute("catLabels", catRevenue.keySet());
         model.addAttribute("catData", catRevenue.values());
         model.addAttribute("payLabels", paymentMap.keySet());
         model.addAttribute("payData", paymentMap.values());
         model.addAttribute("expLabels", expMap.keySet());
         model.addAttribute("expData", expMap.values());
-        model.addAttribute("netProfit", netProfit);
-        model.addAttribute("profitMargin", String.format("%.1f", profitMargin));
+
         model.addAttribute("sales", filteredSales);
 
         return "analytics";
