@@ -1007,14 +1007,28 @@ public class ProductController {
             double amt = s.getTotalAmount();
             totalRevenue += amt;
 
-            // Grouping Item Names: Catch "Juice" and clean up "Custom Mix"
-            String item = (s.getItemsSold() != null) ? s.getItemsSold() : "Unknown";
-            if (item.toLowerCase().contains("juice")) {
-                item = "Juices";
-            } else if (item.startsWith("Custom Mix")) {
-                item = "Custom Mix";
+            // NEW: Robust grouping for Sales Distribution Chart
+            String rawItem = (s.getItemsSold() != null) ? s.getItemsSold().toLowerCase() : "";
+            String displayCategory = "Other";
+
+            if (rawItem.contains("uji")) {
+                displayCategory = "Uji";
+            } else if (rawItem.contains("coffee")) {
+                displayCategory = "Coffee";
+            } else if (rawItem.contains("cake") || rawItem.contains("cupcake")) {
+                displayCategory = "Cupcakes";
+            } else if (rawItem.contains("cookie") || rawItem.contains("biscuit")) {
+                displayCategory = "Cookies";
+            } else if (rawItem.contains("spice") || rawItem.contains("masala") || rawItem.contains("pilau") || rawItem.contains("ginger")) {
+                displayCategory = "Spices";
+            } else if (rawItem.contains("samosa") || rawItem.contains("smokie") || rawItem.contains("mandazi") || rawItem.contains("snack")) {
+                displayCategory = "Snacks";
+            } else if (rawItem.contains("mango") || rawItem.contains("passion") || rawItem.contains("pineapple") || rawItem.contains("ukwaju") || rawItem.contains("mix") || rawItem.contains("juice") || rawItem.contains("mint")) {
+                // Catches all the specific fruit variations and Custom Mixes
+                displayCategory = "Juices";
             }
-            catRevenue.put(item, catRevenue.getOrDefault(item, 0.0) + amt);
+
+            catRevenue.put(displayCategory, catRevenue.getOrDefault(displayCategory, 0.0) + amt);
 
             // Standardize Payment Methods (Fixes duplicates)
             String method = (s.getPaymentMethod() != null) ? s.getPaymentMethod().toUpperCase() : "UNKNOWN";
